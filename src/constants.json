@@ -7,7 +7,7 @@
     "ctaHeading": "Ready to Get Started?",
     "noLogin": false,
     "authOverlay": true,
-    "sidebarCollapsed": false,
+    "sidebarCollapsed": true,
     "features": {
         "title": "Everything You Need",
         "items": [

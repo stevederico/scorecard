@@ -1,5 +1,10 @@
 ## CHANGELOG
 
+0.2.0
+
+  Update README scorecard
+  Collapse sidebar default
+
 2.11.0
 
   Update skateboard-ui 2.9.8
