@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@stevederico/skateboar
 import { Button } from '@stevederico/skateboard-ui/shadcn/ui/button';
 import { Input } from '@stevederico/skateboard-ui/shadcn/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@stevederico/skateboard-ui/shadcn/ui/popover';
-import { RotateCcw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react';
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@stevederico/skateboard-ui/shadcn/ui/drawer';
 
 const POSITIONS = {
   1: 'P', 2: 'C', 3: '1B', 4: '2B', 5: '3B', 6: 'SS', 7: 'LF', 8: 'CF', 9: 'RF'
@@ -48,6 +49,10 @@ export default function BaseballView() {
   const [teams, setTeams] = useState([createTeam('AWAY'), createTeam('HOME')]);
   const [activeTeam, setActiveTeam] = useState(0);
   const [openPopover, setOpenPopover] = useState(null);
+  const [mobilePlayerIdx, setMobilePlayerIdx] = useState(0);
+  const [mobileInningIdx, setMobileInningIdx] = useState(0);
+  const [mobileView, setMobileView] = useState('card');
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const players = teams[activeTeam].players;
   const atBats = teams[activeTeam].atBats;
@@ -194,9 +199,295 @@ export default function BaseballView() {
   const innings = [1, 2, 3, 4, 5, 6, 7, 8, 9];
   const quickResults = ['K', 'BB', '1B', '2B', '3B', 'HR', 'F7', 'F8', 'F9', '6-3', '4-3', '5-3', 'DP'];
 
+  /**
+   * Handles result selection on mobile — updates at-bat and closes drawer.
+   * @param {string} result - At-bat result notation
+   */
+  const handleMobileResult = (result) => {
+    updateAtBat(mobilePlayerIdx, mobileInningIdx, result);
+    setDrawerOpen(false);
+  };
+
+  const mobileAb = atBats[mobilePlayerIdx]?.[mobileInningIdx] || INITIAL_ATBAT;
+  const mobileInningOuts = getInningOuts(mobileInningIdx);
+  const mobileCellIsOut = mobileAb.out > 0;
+  const mobileInningClosed = mobileInningOuts >= 3 && !mobileAb.result;
+
   return (
     <>
-      <div className="flex flex-1 flex-col p-2 md:p-4 overflow-auto">
+      {/* MOBILE LAYOUT */}
+      <div className="flex flex-col flex-1 md:hidden overflow-hidden pb-20">
+        {mobileView === 'card' ? (
+          <>
+            {/* Top bar: team tabs + stats button */}
+            <div className="flex items-center justify-between px-3 py-2 border-b">
+              <div className="flex items-center gap-1">
+                {teams.map((team, idx) => (
+                  <button
+                    key={idx}
+                    className={`px-2 py-1 text-sm font-mono rounded transition-colors ${activeTeam === idx ? 'bg-foreground text-background font-bold' : 'text-muted-foreground'}`}
+                    onClick={() => setActiveTeam(idx)}
+                  >
+                    {idx === 0 ? '⚾' : '🏟️'} {team.name}
+                  </button>
+                ))}
+              </div>
+              <Button variant="outline" size="sm" onClick={() => setMobileView('stats')}>
+                Stats
+              </Button>
+            </div>
+
+            {/* Inning dots */}
+            <div className="flex justify-center gap-1 py-2">
+              {innings.map((_, i) => (
+                <button
+                  key={i}
+                  className={`w-7 h-7 rounded-full text-xs font-bold transition-colors ${mobileInningIdx === i ? 'bg-foreground text-background' : 'bg-muted text-muted-foreground'}`}
+                  onClick={() => setMobileInningIdx(i)}
+                >
+                  {i + 1}
+                </button>
+              ))}
+            </div>
+
+            {/* Big diamond — tap to open drawer */}
+            <div
+              className={`flex-1 flex items-center justify-center px-12 ${mobileInningClosed ? 'opacity-30' : 'cursor-pointer active:scale-95 transition-transform'}`}
+              onClick={() => !mobileInningClosed && setDrawerOpen(true)}
+            >
+              <svg viewBox="0 0 68 56" className="w-full max-w-xs">
+                <path
+                  d="M34 4 L56 28 L34 52 L12 28 Z"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  className="text-foreground/40"
+                />
+                {mobileAb.first && (
+                  <line x1="34" y1="52" x2="56" y2="28" stroke="currentColor" strokeWidth="3" className="text-foreground" />
+                )}
+                {mobileAb.second && (
+                  <line x1="56" y1="28" x2="34" y2="4" stroke="currentColor" strokeWidth="3" className="text-foreground" />
+                )}
+                {mobileAb.third && (
+                  <line x1="34" y1="4" x2="12" y2="28" stroke="currentColor" strokeWidth="3" className="text-foreground" />
+                )}
+                {mobileAb.home && (
+                  <>
+                    <line x1="12" y1="28" x2="34" y2="52" stroke="currentColor" strokeWidth="3" className="text-foreground" />
+                    <path d="M34 8 L52 28 L34 48 L16 28 Z" fill="currentColor" className="text-foreground/20" />
+                  </>
+                )}
+                <text x="34" y="28" textAnchor="middle" dominantBaseline="central" fontSize="12" fontWeight="bold" fill="currentColor">
+                  {mobileAb.result}
+                </text>
+                {mobileCellIsOut && (
+                  <>
+                    <circle cx="57" cy="46" r="8" fill="currentColor" className="text-foreground" />
+                    <text x="57" y="46" textAnchor="middle" dominantBaseline="central" fontSize="10" fontWeight="bold" fill="white">
+                      {getOutNumber(mobilePlayerIdx, mobileInningIdx)}
+                    </text>
+                  </>
+                )}
+              </svg>
+            </div>
+
+            {/* Player info */}
+            <div className="px-4 py-2 text-center">
+              <p className="font-mono font-bold text-lg">
+                {players[mobilePlayerIdx].num ? `#${players[mobilePlayerIdx].num} ` : ''}
+                {players[mobilePlayerIdx].name || `Batter ${mobilePlayerIdx + 1}`}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {players[mobilePlayerIdx].pos || '--'} · Batting {mobilePlayerIdx + 1} of 9
+              </p>
+            </div>
+
+            {/* Bottom nav: prev/next batter + inning arrows */}
+            <div className="flex items-center justify-between px-3 py-3 border-t">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={mobilePlayerIdx === 0}
+                onClick={() => setMobilePlayerIdx(p => p - 1)}
+              >
+                <ChevronLeft className="h-4 w-4 mr-1" /> Prev
+              </Button>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  disabled={mobileInningIdx === 0}
+                  onClick={() => setMobileInningIdx(i => i - 1)}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="text-sm font-mono font-bold w-12 text-center">Inn {mobileInningIdx + 1}</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  disabled={mobileInningIdx === 8}
+                  onClick={() => setMobileInningIdx(i => i + 1)}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={mobilePlayerIdx === 8}
+                onClick={() => setMobilePlayerIdx(p => p + 1)}
+              >
+                Next <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
+
+            {/* Drawer for result entry */}
+            <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
+              <DrawerContent>
+                <DrawerHeader>
+                  <DrawerTitle>
+                    {players[mobilePlayerIdx].name || `Batter ${mobilePlayerIdx + 1}`} — Inning {mobileInningIdx + 1}
+                  </DrawerTitle>
+                </DrawerHeader>
+                <div className="px-4 pb-6 space-y-3">
+                  <div className="grid grid-cols-5 gap-2">
+                    {quickResults.map(r => {
+                      const rIsOut = isOutResult(r);
+                      const rOuts = r === 'DP' ? 2 : (rIsOut ? 1 : 0);
+                      const wouldExceed = rIsOut && !mobileCellIsOut && mobileInningOuts + rOuts > 3;
+                      return (
+                        <Button
+                          key={r}
+                          variant="outline"
+                          className="h-10 text-sm font-mono"
+                          disabled={wouldExceed}
+                          onClick={() => handleMobileResult(r)}
+                        >
+                          {r}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                  {mobileInningOuts >= 3 && !mobileCellIsOut && (
+                    <p className="text-xs text-destructive font-semibold text-center">3 outs recorded in inning {mobileInningIdx + 1}</p>
+                  )}
+                  <Input
+                    placeholder="Custom..."
+                    className="h-10 text-sm font-mono"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        handleMobileResult(e.target.value.toUpperCase());
+                      }
+                    }}
+                  />
+                  <div className="flex items-center gap-2 pt-2 border-t">
+                    <span className="text-sm text-muted-foreground">Bases:</span>
+                    {['first', 'second', 'third', 'home'].map((base, i) => (
+                      <Button
+                        key={base}
+                        variant={mobileAb[base] ? 'default' : 'outline'}
+                        size="sm"
+                        className="h-8 w-8 p-0"
+                        onClick={() => toggleBase(mobilePlayerIdx, mobileInningIdx, base)}
+                      >
+                        {i === 3 ? 'H' : i + 1}
+                      </Button>
+                    ))}
+                  </div>
+                  <Button
+                    variant="ghost"
+                    className="w-full"
+                    onClick={() => handleMobileResult('')}
+                  >
+                    Clear
+                  </Button>
+                </div>
+              </DrawerContent>
+            </Drawer>
+          </>
+        ) : (
+          /* STATS VIEW */
+          <div className="flex flex-col flex-1 overflow-hidden">
+            {/* Stats header */}
+            <div className="flex items-center justify-between px-3 py-2 border-b">
+              <Button variant="ghost" size="sm" onClick={() => setMobileView('card')}>
+                <ChevronLeft className="h-4 w-4 mr-1" /> Back
+              </Button>
+              <div className="flex items-center gap-1">
+                {teams.map((team, idx) => (
+                  <button
+                    key={idx}
+                    className={`px-2 py-1 text-sm font-mono rounded transition-colors ${activeTeam === idx ? 'bg-foreground text-background font-bold' : 'text-muted-foreground'}`}
+                    onClick={() => setActiveTeam(idx)}
+                  >
+                    {team.name}
+                  </button>
+                ))}
+              </div>
+              <Button variant="outline" size="sm" onClick={resetScorecard}>
+                <RotateCcw className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {/* Linescore */}
+            <div className="flex items-center px-3 py-2 bg-muted text-xs font-mono border-b">
+              <span className="w-20 font-bold truncate">{teams[activeTeam].name}</span>
+              {innings.map((_, i) => (
+                <span key={i} className="w-6 text-center">{getInningRuns(i) || '-'}</span>
+              ))}
+              <span className="w-8 text-center font-bold ml-2">
+                {atBats.flat().filter(ab => ab.home).length}R
+              </span>
+            </div>
+
+            {/* Player rows */}
+            <div className="flex-1 overflow-auto">
+              {players.map((player, pIdx) => {
+                const pAB = atBats[pIdx].filter(ab => ab.result && !['BB', 'HBP'].includes(ab.result)).length;
+                const pH = atBats[pIdx].filter(ab => ['1B', '2B', '3B', 'HR'].some(h => ab.result.includes(h))).length;
+                const pR = atBats[pIdx].filter(ab => ab.home).length;
+                return (
+                  <div
+                    key={pIdx}
+                    className="flex items-center justify-between px-3 py-3 border-b cursor-pointer active:bg-accent/50 transition-colors"
+                    onClick={() => { setMobilePlayerIdx(pIdx); setMobileView('card'); }}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-xs text-muted-foreground w-4">{pIdx + 1}</span>
+                      <div className="min-w-0">
+                        <span className="font-mono font-bold text-sm truncate">
+                          {player.num ? `#${player.num} ` : ''}{player.name || `Batter ${pIdx + 1}`}
+                        </span>
+                        <span className="text-xs text-muted-foreground ml-2">{player.pos || '--'}</span>
+                      </div>
+                    </div>
+                    <div className="flex gap-3 text-xs font-mono shrink-0">
+                      <span>AB:{pAB}</span>
+                      <span>H:{pH}</span>
+                      <span>R:{pR}</span>
+                    </div>
+                  </div>
+                );
+              })}
+              {/* Totals row */}
+              <div className="flex items-center justify-between px-3 py-3 bg-muted/50 font-bold">
+                <span className="text-sm">TOTALS</span>
+                <div className="flex gap-3 text-xs font-mono">
+                  <span>AB:{atBats.flat().filter(ab => ab.result && !['BB', 'HBP'].includes(ab.result)).length}</span>
+                  <span>H:{getTotalHits()}</span>
+                  <span>R:{atBats.flat().filter(ab => ab.home).length}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* DESKTOP LAYOUT (existing, unchanged) */}
+      <div className="hidden md:flex flex-1 flex-col p-2 md:p-4 overflow-auto">
         <Card className="w-full max-w-6xl mx-auto">
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center justify-between">

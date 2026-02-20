@@ -1,5 +1,12 @@
 ## CHANGELOG
 
+0.4.0
+
+  Add mobile card-per-player layout
+  Add bottom drawer scoring
+  Add inning dot navigation
+  Add mobile stats view
+
 0.3.1
 
   Update dark mode screenshot
