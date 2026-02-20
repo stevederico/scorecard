@@ -1,30 +1,30 @@
 {
     "version": "0.1.0",
-    "appName": "Scorecard App",
-    "appIcon": "command",
-    "tagline": "Try Something New",
-    "cta": "Get Started",
-    "ctaHeading": "Ready to Get Started?",
+    "appName": "Scorecard",
+    "appIcon": "clipboard-check",
+    "tagline": "Score the Game",
+    "cta": "Play Ball",
+    "ctaHeading": "Ready to Score?",
     "noLogin": false,
     "authOverlay": true,
     "sidebarCollapsed": true,
     "features": {
-        "title": "Everything You Need",
+        "title": "The Official Scorecard",
         "items": [
             {
-                "icon": "🔐",
-                "title": "Authentication",
-                "description": "Complete user management with JWT tokens and secure sessions"
+                "icon": "⚾",
+                "title": "Full Nine Innings",
+                "description": "Track every at-bat with diamond notation, base advancement, and out counting"
             },
             {
-                "icon": "💳",
-                "title": "Stripe Payments",
-                "description": "Ready-to-use checkout flows and subscription management"
+                "icon": "📋",
+                "title": "Both Clubs",
+                "description": "Separate scorecards for the visiting and home nines with tab switching"
             },
             {
-                "icon": "🎨",
-                "title": "Beautiful UI",
-                "description": "50+ Shadcn components with dark mode support"
+                "icon": "📊",
+                "title": "Box Score",
+                "description": "Automatic tallies for at-bats, hits, and runs scored per inning"
             }
         ]
     },
@@ -37,34 +37,12 @@
             "icon": "clipboard-check"
         }
     ],
-    "stripeProducts": [
-        {
-            "price": "$5.00",
-            "title": "Unlimited",
-            "interval": "month",
-            "lookup_key": "my_lookup_key",
-            "features": [
-                "Unlimited Todos",
-                "Unlimited Messages",
-                "All Premium Features"
-            ]
-        }
-    ],
-    "pricing": {
-        "title": "Simple, Transparent Pricing",
-        "extras": [
-            "Priority Customer Support",
-            "Cancel Anytime"
-        ]
-    },
+    "stripeProducts": [],
+    "pricing": {},
     "navLinks": [
         {
             "label": "Features",
             "href": "#features"
-        },
-        {
-            "label": "Pricing",
-            "href": "#pricing"
         }
     ],
     "footerLinks": [

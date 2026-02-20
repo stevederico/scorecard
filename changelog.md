@@ -1,5 +1,15 @@
 ## CHANGELOG
 
+0.3.0
+
+  Add two-team scoring
+  Add vintage landing page
+  Add CSS bunting decoration
+  Add sample game screenshot
+  Update README with screenshot
+  Update constants for baseball
+  Remove pricing section
+
 0.2.0
 
   Update README scorecard

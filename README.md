@@ -1,7 +1,9 @@
 <p align="center">
-  <img src="public/icons/icon.png" width="60" height="60" alt="Scorecard App">
+  <img src="src/assets/screenshot.png" width="800" alt="Scorecard — Sample Game">
 </p>
+
 <h1 align="center">Scorecard</h1>
+
 <h3 align="center" style="font-weight: normal;">
   Baseball scorecard app with diamond-based at-bat tracking
 </h3>

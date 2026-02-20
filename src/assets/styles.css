@@ -1,9 +1,10 @@
 @import "@stevederico/skateboard-ui/styles.css";
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Special+Elite&display=swap');
 
 @source '../../node_modules/@stevederico/skateboard-ui';
 
 @theme {
-  --color-app: var(--color-red-500);
+  --color-app: #8B2500;
 }
 
 [data-slot="sidebar-wrapper"] {
@@ -17,6 +18,354 @@
 [data-sidebar="footer"] [data-sidebar="menu-button"] > div > span {
   overflow: visible !important;
   text-overflow: unset !important;
+}
+
+/* === 1920s Vintage Baseball Landing Page === */
+
+/* Landing page root — parchment background with aged paper texture */
+div.min-h-screen {
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 40px,
+      rgba(139, 37, 0, 0.02) 40px,
+      rgba(139, 37, 0, 0.02) 41px
+    ),
+    radial-gradient(ellipse at 20% 50%, rgba(139, 37, 0, 0.04) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(196, 162, 101, 0.06) 0%, transparent 40%),
+    linear-gradient(180deg, #F5E6C8 0%, #EFD9B4 30%, #E8CFA0 60%, #F2E0BC 100%) !important;
+  color: #1B2838 !important;
+}
+
+/* SVG bunting injected via CSS pseudo-element on the header */
+div.min-h-screen > header {
+  background: #1B2838 !important;
+  border-bottom: 3px solid #C4A265 !important;
+  backdrop-filter: none !important;
+  position: relative;
+}
+
+div.min-h-screen > header::after {
+  content: '';
+  position: absolute;
+  bottom: -30px;
+  left: 0;
+  right: 0;
+  height: 28px;
+  z-index: 40;
+  background:
+    radial-gradient(ellipse 11.11% 100% at 5.55% 0%, #8B2500 70%, transparent 71%),
+    radial-gradient(ellipse 11.11% 100% at 16.66% 0%, #F5E6C8 70%, transparent 71%),
+    radial-gradient(ellipse 11.11% 100% at 27.77% 0%, #1B2838 70%, transparent 71%),
+    radial-gradient(ellipse 11.11% 100% at 38.88% 0%, #8B2500 70%, transparent 71%),
+    radial-gradient(ellipse 11.11% 100% at 50% 0%, #F5E6C8 70%, transparent 71%),
+    radial-gradient(ellipse 11.11% 100% at 61.11% 0%, #1B2838 70%, transparent 71%),
+    radial-gradient(ellipse 11.11% 100% at 72.22% 0%, #8B2500 70%, transparent 71%),
+    radial-gradient(ellipse 11.11% 100% at 83.33% 0%, #F5E6C8 70%, transparent 71%),
+    radial-gradient(ellipse 11.11% 100% at 94.44% 0%, #1B2838 70%, transparent 71%);
+}
+
+/* Navbar text */
+div.min-h-screen > header nav span {
+  font-family: 'Playfair Display', Georgia, 'Times New Roman', serif !important;
+  color: #F5E6C8 !important;
+  letter-spacing: 0.05em;
+}
+
+div.min-h-screen > header nav a {
+  color: #C4A265 !important;
+  font-family: 'Special Elite', 'Courier New', monospace !important;
+  letter-spacing: 0.05em;
+}
+
+div.min-h-screen > header nav a:hover {
+  color: #F5E6C8 !important;
+}
+
+/* Header CTA button */
+div.min-h-screen > header button[data-slot="button"] {
+  font-family: 'Playfair Display', Georgia, serif !important;
+  letter-spacing: 0.05em;
+}
+
+/* Hero section */
+div.min-h-screen > main > section:first-child {
+  padding-top: 8rem !important;
+  position: relative;
+}
+
+div.min-h-screen > main > section:first-child h1 {
+  font-family: 'Playfair Display', Georgia, 'Times New Roman', serif !important;
+  color: #1B2838 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  line-height: 1.1;
+  text-shadow: 2px 2px 0px rgba(196, 162, 101, 0.3);
+}
+
+div.min-h-screen > main > section:first-child p {
+  font-family: 'Special Elite', 'Courier New', monospace !important;
+  color: #5A3E28 !important;
+}
+
+/* Hero CTA button — vintage style */
+div.min-h-screen > main > section:first-child button[data-slot="button"] {
+  background: #1B2838 !important;
+  color: #F5E6C8 !important;
+  border: 2px solid #C4A265 !important;
+  font-family: 'Playfair Display', Georgia, serif !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.1em !important;
+  text-transform: uppercase !important;
+  border-radius: 2px !important;
+  box-shadow: 3px 3px 0px rgba(27, 40, 56, 0.2) !important;
+  transition: all 0.2s ease !important;
+}
+
+div.min-h-screen > main > section:first-child button[data-slot="button"]:hover {
+  background: #8B2500 !important;
+  border-color: #8B2500 !important;
+  box-shadow: 2px 2px 0px rgba(139, 37, 0, 0.3) !important;
+  transform: translate(1px, 1px);
+}
+
+/* Features section */
+section#features {
+  background:
+    linear-gradient(180deg, rgba(27, 40, 56, 0.06) 0%, rgba(27, 40, 56, 0.02) 100%),
+    rgba(245, 230, 200, 0.4) !important;
+  border-top: 2px solid #C4A265;
+  border-bottom: 2px solid #C4A265;
+}
+
+section#features h2 {
+  font-family: 'Playfair Display', Georgia, 'Times New Roman', serif !important;
+  color: #1B2838 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+section#features [data-slot="card"] {
+  background: rgba(245, 230, 200, 0.7) !important;
+  border: 1.5px solid #C4A265 !important;
+  border-radius: 2px !important;
+  box-shadow: 3px 3px 0px rgba(27, 40, 56, 0.1) !important;
+}
+
+section#features [data-slot="card-title"] {
+  font-family: 'Playfair Display', Georgia, serif !important;
+  color: #1B2838 !important;
+}
+
+section#features [data-slot="card-description"] {
+  font-family: 'Special Elite', 'Courier New', monospace !important;
+  color: #5A3E28 !important;
+}
+
+/* Pricing section */
+section#pricing {
+  position: relative;
+}
+
+section#pricing h2 {
+  font-family: 'Playfair Display', Georgia, 'Times New Roman', serif !important;
+  color: #1B2838 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+section#pricing [data-slot="card"] {
+  background: rgba(245, 230, 200, 0.7) !important;
+  border: 2px solid #1B2838 !important;
+  border-radius: 2px !important;
+  box-shadow: 4px 4px 0px rgba(27, 40, 56, 0.15) !important;
+}
+
+section#pricing [data-slot="card-title"],
+section#pricing [data-slot="card-description"] {
+  font-family: 'Playfair Display', Georgia, serif !important;
+}
+
+section#pricing .text-5xl {
+  font-family: 'Playfair Display', Georgia, serif !important;
+  color: #8B2500 !important;
+}
+
+section#pricing li {
+  font-family: 'Special Elite', 'Courier New', monospace !important;
+  color: #1B2838 !important;
+}
+
+section#pricing button[data-slot="button"] {
+  background: #8B2500 !important;
+  color: #F5E6C8 !important;
+  border: 2px solid #8B2500 !important;
+  font-family: 'Playfair Display', Georgia, serif !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.1em !important;
+  text-transform: uppercase !important;
+  border-radius: 2px !important;
+}
+
+section#pricing button[data-slot="button"]:hover {
+  background: #1B2838 !important;
+  border-color: #1B2838 !important;
+}
+
+/* CTA section at bottom */
+div.min-h-screen > main > section:last-child [data-slot="card"] {
+  background: #1B2838 !important;
+  border: 2px solid #C4A265 !important;
+  border-radius: 2px !important;
+}
+
+div.min-h-screen > main > section:last-child h2 {
+  font-family: 'Playfair Display', Georgia, 'Times New Roman', serif !important;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+div.min-h-screen > main > section:last-child button[data-slot="button"] {
+  background: #F5E6C8 !important;
+  color: #1B2838 !important;
+  border: 2px solid #C4A265 !important;
+  font-family: 'Playfair Display', Georgia, serif !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.1em !important;
+  text-transform: uppercase !important;
+  border-radius: 2px !important;
+}
+
+div.min-h-screen > main > section:last-child button[data-slot="button"]:hover {
+  background: #C4A265 !important;
+}
+
+/* Footer */
+div.min-h-screen > footer {
+  background: #1B2838 !important;
+  border-top: 2px solid #C4A265;
+}
+
+div.min-h-screen > footer a {
+  color: #C4A265 !important;
+  font-family: 'Special Elite', 'Courier New', monospace !important;
+}
+
+div.min-h-screen > footer a:hover {
+  color: #F5E6C8 !important;
+}
+
+div.min-h-screen > footer p {
+  color: rgba(196, 162, 101, 0.6) !important;
+  font-family: 'Special Elite', 'Courier New', monospace !important;
+}
+
+div.min-h-screen > footer [data-slot="separator"] {
+  background: #C4A265 !important;
+  opacity: 0.3;
+}
+
+/* Dark mode — keep scorecard defaults, override landing page */
+.dark div.min-h-screen {
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 40px,
+      rgba(196, 162, 101, 0.02) 40px,
+      rgba(196, 162, 101, 0.02) 41px
+    ),
+    linear-gradient(180deg, #0f0d0a 0%, #1a1510 50%, #0f0d0a 100%) !important;
+  color: #E8CFA0 !important;
+}
+
+.dark div.min-h-screen > header {
+  background: #0a0806 !important;
+  border-bottom-color: rgba(196, 162, 101, 0.4) !important;
+}
+
+.dark div.min-h-screen > header::after {
+  background:
+    radial-gradient(ellipse 11.11% 100% at 5.55% 0%, #6B1D00 70%, transparent 71%),
+    radial-gradient(ellipse 11.11% 100% at 16.66% 0%, #2a2015 70%, transparent 71%),
+    radial-gradient(ellipse 11.11% 100% at 27.77% 0%, #0f0d0a 70%, transparent 71%),
+    radial-gradient(ellipse 11.11% 100% at 38.88% 0%, #6B1D00 70%, transparent 71%),
+    radial-gradient(ellipse 11.11% 100% at 50% 0%, #2a2015 70%, transparent 71%),
+    radial-gradient(ellipse 11.11% 100% at 61.11% 0%, #0f0d0a 70%, transparent 71%),
+    radial-gradient(ellipse 11.11% 100% at 72.22% 0%, #6B1D00 70%, transparent 71%),
+    radial-gradient(ellipse 11.11% 100% at 83.33% 0%, #2a2015 70%, transparent 71%),
+    radial-gradient(ellipse 11.11% 100% at 94.44% 0%, #0f0d0a 70%, transparent 71%);
+}
+
+.dark div.min-h-screen > main > section:first-child h1 {
+  color: #E8CFA0 !important;
+  text-shadow: 2px 2px 0px rgba(0, 0, 0, 0.4);
+}
+
+.dark div.min-h-screen > main > section:first-child p {
+  color: #C4A265 !important;
+}
+
+.dark div.min-h-screen > main > section:first-child button[data-slot="button"] {
+  background: #C4A265 !important;
+  color: #0f0d0a !important;
+  border-color: #C4A265 !important;
+}
+
+.dark div.min-h-screen > main > section:first-child button[data-slot="button"]:hover {
+  background: #8B2500 !important;
+  color: #F5E6C8 !important;
+  border-color: #8B2500 !important;
+}
+
+.dark section#features {
+  background: rgba(15, 13, 10, 0.6) !important;
+  border-color: rgba(196, 162, 101, 0.2);
+}
+
+.dark section#features h2 {
+  color: #E8CFA0 !important;
+}
+
+.dark section#features [data-slot="card"] {
+  background: rgba(26, 21, 16, 0.8) !important;
+  border-color: rgba(196, 162, 101, 0.3) !important;
+}
+
+.dark section#features [data-slot="card-title"] {
+  color: #E8CFA0 !important;
+}
+
+.dark section#features [data-slot="card-description"] {
+  color: #C4A265 !important;
+}
+
+.dark section#pricing h2 {
+  color: #E8CFA0 !important;
+}
+
+.dark section#pricing [data-slot="card"] {
+  background: rgba(26, 21, 16, 0.8) !important;
+  border-color: #C4A265 !important;
+}
+
+.dark section#pricing .text-5xl {
+  color: #C4A265 !important;
+}
+
+.dark section#pricing li {
+  color: #E8CFA0 !important;
+}
+
+.dark div.min-h-screen > main > section:last-child [data-slot="card"] {
+  background: #0a0806 !important;
+  border-color: rgba(196, 162, 101, 0.4) !important;
+}
+
+.dark div.min-h-screen > footer {
+  background: #0a0806 !important;
+  border-top-color: rgba(196, 162, 101, 0.2);
 }
 
 .dark {

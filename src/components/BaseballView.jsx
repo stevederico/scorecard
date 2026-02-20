@@ -25,7 +25,19 @@ const INITIAL_PLAYERS = [
 const INITIAL_ATBAT = { result: '', first: false, second: false, third: false, home: false, out: 0 };
 
 /**
+ * Creates a fresh team object with default players and at-bats.
+ * @param {string} name - Team name
+ * @returns {{ name: string, players: Array, atBats: Array }} Team object
+ */
+const createTeam = (name) => ({
+  name,
+  players: INITIAL_PLAYERS.map(p => ({ ...p })),
+  atBats: Array(9).fill(null).map(() => Array(9).fill(null).map(() => ({ ...INITIAL_ATBAT })))
+});
+
+/**
  * Baseball scorecard component for official scoring.
+ * Supports two teams (away/home) with tab switching.
  * Features diamond-based at-bat boxes, player lineup tracking,
  * and standard baseball notation (K, BB, 6-3, F8, etc).
  *
@@ -33,12 +45,12 @@ const INITIAL_ATBAT = { result: '', first: false, second: false, third: false, h
  * @returns {JSX.Element} Baseball scorecard view
  */
 export default function BaseballView() {
-  const [teamName, setTeamName] = useState('TEAM');
-  const [players, setPlayers] = useState(INITIAL_PLAYERS);
-  const [atBats, setAtBats] = useState(
-    Array(9).fill(null).map(() => Array(9).fill(null).map(() => ({ ...INITIAL_ATBAT })))
-  );
+  const [teams, setTeams] = useState([createTeam('AWAY'), createTeam('HOME')]);
+  const [activeTeam, setActiveTeam] = useState(0);
   const [openPopover, setOpenPopover] = useState(null);
+
+  const players = teams[activeTeam].players;
+  const atBats = teams[activeTeam].atBats;
 
   /**
    * Counts outs in a specific inning.
@@ -76,15 +88,17 @@ export default function BaseballView() {
   };
 
   /**
-   * Updates player info in the lineup.
+   * Updates player info in the active team's lineup.
    * @param {number} idx - Player index
    * @param {string} field - Field to update
    * @param {string} value - New value
    */
   const updatePlayer = (idx, field, value) => {
-    const newPlayers = [...players];
+    const newTeams = [...teams];
+    const newPlayers = [...newTeams[activeTeam].players];
     newPlayers[idx] = { ...newPlayers[idx], [field]: value };
-    setPlayers(newPlayers);
+    newTeams[activeTeam] = { ...newTeams[activeTeam], players: newPlayers };
+    setTeams(newTeams);
   };
 
   /**
@@ -104,7 +118,8 @@ export default function BaseballView() {
       return;
     }
 
-    const newAtBats = [...atBats];
+    const newTeams = [...teams];
+    const newAtBats = [...newTeams[activeTeam].atBats];
     newAtBats[playerIdx] = [...newAtBats[playerIdx]];
     newAtBats[playerIdx][inning] = {
       ...newAtBats[playerIdx][inning],
@@ -115,33 +130,46 @@ export default function BaseballView() {
       home: result.includes('HR'),
       out: dpOuts
     };
-    setAtBats(newAtBats);
+    newTeams[activeTeam] = { ...newTeams[activeTeam], atBats: newAtBats };
+    setTeams(newTeams);
     setOpenPopover(null);
   };
 
   /**
-   * Toggles base advancement for a runner.
+   * Toggles base advancement for a runner on the active team.
    * @param {number} playerIdx - Player index
    * @param {number} inning - Inning index
    * @param {string} base - Base to toggle
    */
   const toggleBase = (playerIdx, inning, base) => {
-    const newAtBats = [...atBats];
+    const newTeams = [...teams];
+    const newAtBats = [...newTeams[activeTeam].atBats];
     newAtBats[playerIdx] = [...newAtBats[playerIdx]];
     newAtBats[playerIdx][inning] = {
       ...newAtBats[playerIdx][inning],
       [base]: !newAtBats[playerIdx][inning][base]
     };
-    setAtBats(newAtBats);
+    newTeams[activeTeam] = { ...newTeams[activeTeam], atBats: newAtBats };
+    setTeams(newTeams);
   };
 
   /**
-   * Resets the entire scorecard.
+   * Resets both teams back to initial state.
    */
   const resetScorecard = () => {
-    setTeamName('TEAM');
-    setPlayers(INITIAL_PLAYERS);
-    setAtBats(Array(9).fill(null).map(() => Array(9).fill(null).map(() => ({ ...INITIAL_ATBAT }))));
+    setTeams([createTeam('AWAY'), createTeam('HOME')]);
+    setActiveTeam(0);
+  };
+
+  /**
+   * Updates the active team's name.
+   * @param {number} idx - Team index (0=away, 1=home)
+   * @param {string} name - New team name
+   */
+  const updateTeamName = (idx, name) => {
+    const newTeams = [...teams];
+    newTeams[idx] = { ...newTeams[idx], name };
+    setTeams(newTeams);
   };
 
   /**
@@ -172,14 +200,23 @@ export default function BaseballView() {
         <Card className="w-full max-w-6xl mx-auto">
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-2xl">⚾</span>
-                <Input
-                  value={teamName}
-                  onChange={(e) => setTeamName(e.target.value.toUpperCase())}
-                  className="h-8 w-32 font-mono font-bold text-sm border-0 bg-transparent"
-                  maxLength={12}
-                />
+              <div className="flex items-center gap-1">
+                {teams.map((team, idx) => (
+                  <div
+                    key={idx}
+                    className={`cursor-pointer px-1 pb-1 transition-all flex items-center gap-1 ${activeTeam === idx ? 'border-b-2 border-foreground' : 'text-muted-foreground opacity-50 hover:opacity-75'}`}
+                    onClick={() => setActiveTeam(idx)}
+                  >
+                    <span className="text-lg">{idx === 0 ? '⚾' : '🏟️'}</span>
+                    <Input
+                      value={team.name}
+                      onChange={(e) => updateTeamName(idx, e.target.value.toUpperCase())}
+                      onClick={(e) => { setActiveTeam(idx); e.stopPropagation(); }}
+                      className={`h-8 w-28 font-mono text-sm border-0 bg-transparent text-center ${activeTeam === idx ? 'font-bold' : ''}`}
+                      maxLength={12}
+                    />
+                  </div>
+                ))}
               </div>
               <Button variant="outline" size="sm" onClick={resetScorecard}>
                 <RotateCcw className="h-4 w-4 mr-2" />
