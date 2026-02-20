@@ -1,5 +1,10 @@
 ## CHANGELOG
 
+0.3.1
+
+  Update dark mode screenshot
+  Rename opponent team Giants
+
 0.3.0
 
   Add two-team scoring
