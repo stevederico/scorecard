@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport"  content="width=device-width, initial-scale=1, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+    <link rel="icon" type="image/png" href="/icons/icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    
+    <!-- OpenGraph Meta Data -->
+    <meta property="og:title" content="{{APP_NAME}}">
+    <meta property="og:description" content="{{TAGLINE}}">
+    <meta property="og:image" content="/icons/icon.png">
+    <meta property="og:url" content="https://{{COMPANY_WEBSITE}}">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="{{APP_NAME}}">
+    
+    <!-- Twitter Card Meta Data -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{{APP_NAME}}">
+    <meta name="twitter:description" content="{{TAGLINE}}">
+    <meta name="twitter:image" content="/icons/icon.png">
+
+    <!-- Prevent dark mode flash -->
+    <script>
+      (function() {
+        const savedTheme = localStorage.getItem('theme');
+        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const isDark = savedTheme ? savedTheme === 'dark' : systemPrefersDark;
+
+        if (isDark) {
+          document.documentElement.classList.add('dark');
+        }
+      })();
+    </script>
+
+    <style>
+      body { background: oklch(0.985 0 0); }
+      .dark body { background: oklch(0.05 0 0); }
+      #root { opacity: 0; }
+    </style>
+
+    <script defer type="module" src="/src/main.jsx"></script>
+  </head>
+  <body style="height: 100%; overscroll-behavior: none;">
+    <div id="root"></div>
+  </body>
+</html>

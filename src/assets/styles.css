@@ -1,0 +1,25 @@
+@import "@stevederico/skateboard-ui/styles.css";
+
+@source '../../node_modules/@stevederico/skateboard-ui';
+
+@theme {
+  --color-app: var(--color-red-500);
+}
+
+[data-slot="sidebar-wrapper"] {
+  --sidebar-width: 14rem !important;
+}
+
+[data-sidebar="footer"] [data-sidebar="menu-button"] > div {
+  flex: 0 1 auto !important;
+}
+
+[data-sidebar="footer"] [data-sidebar="menu-button"] > div > span {
+  overflow: visible !important;
+  text-overflow: unset !important;
+}
+
+.dark {
+  --card: #0d0d0d;
+  --accent: #111111;
+}

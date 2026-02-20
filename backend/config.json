@@ -1,0 +1,8 @@
+{
+  "staticDir": "../dist",
+  "database": {
+    "db": "ScorecardApp",
+    "dbType": "sqlite",
+    "connectionString": "./databases/ScorecardApp.db"
+  }
+}
