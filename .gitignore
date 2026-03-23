@@ -36,6 +36,9 @@ backend/.env
 *.sln
 *.sw?
 
+# Railway
+railway.json
+
 # Database files
 *.db
 *.db-shm

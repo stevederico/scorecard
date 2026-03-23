@@ -1,5 +1,11 @@
 ## CHANGELOG
 
+0.5.0
+
+  Update skateboard 2.30.0
+  Fix static file serving
+  Replace tabler with lucide
+
 0.4.0
 
   Add mobile card-per-player layout

@@ -876,38 +876,93 @@ app.post("/api/payment", async (c) => {
       return c.body(null, 200);
     }
 
-    const { customer: stripeID, current_period_end, status } = event.data.object;
+    // Record event BEFORE processing to prevent race conditions
+    await db.insertWebhookEvent(event.id, event.type, Date.now());
 
-    // Validate required fields exist
-    if (!stripeID) {
-      logger.error('Webhook missing customer ID');
-      return c.body(null, 400);
-    }
+    const eventObject = event.data.object;
 
-    const customer = await stripe.customers.retrieve(stripeID);
+    // Handle subscription lifecycle events
+    if (["customer.subscription.deleted", "customer.subscription.updated", "customer.subscription.created"].includes(event.type)) {
+      const { customer: stripeID, current_period_end, status } = eventObject;
+      if (!stripeID) {
+        logger.error('Webhook missing customer ID', { type: event.type });
+        return c.body(null, 400);
+      }
 
-    // Null check for customer email
-    if (!customer || !customer.email) {
-      logger.error('Webhook: Customer has no email', { stripeID });
-      return c.body(null, 400);
-    }
+      const customer = await stripe.customers.retrieve(stripeID);
+      if (!customer || !customer.email) {
+        logger.error('Webhook: Customer has no email', { stripeID });
+        return c.body(null, 400);
+      }
 
-    const customerEmail = customer.email.toLowerCase();
-
-    if (["customer.subscription.deleted", "customer.subscription.updated","customer.subscription.created"].includes(event.type)) {
+      const customerEmail = customer.email.toLowerCase();
       const user = await db.findUser({ email: customerEmail });
       if (user) {
         await db.updateUser({ email: customerEmail }, {
           $set: { subscription: { stripeID, expires: current_period_end, status } }
         });
+        logger.info('Subscription updated', { type: event.type, email: customerEmail, status });
       } else {
-        logger.warn('Webhook: No user found for email');
+        logger.warn('Webhook: No user found for email', { email: customerEmail });
       }
     }
 
-    // Record successful processing for idempotency
-    await db.insertWebhookEvent(event.id, event.type, Date.now());
-    logger.info('Webhook processed successfully', { eventId: event.id, type: event.type });
+    // Handle checkout session completed (initial subscription)
+    if (event.type === "checkout.session.completed") {
+      const { customer: stripeID, customer_email, subscription: subscriptionId } = eventObject;
+      if (subscriptionId && stripeID) {
+        const subscriptionPromise = stripe.subscriptions.retrieve(subscriptionId);
+        const customerPromise = !customer_email ? stripe.customers.retrieve(stripeID) : null;
+        const [subscription, fetchedCustomer] = await Promise.all([subscriptionPromise, customerPromise]);
+        const customerEmail = (customer_email || fetchedCustomer.email).toLowerCase();
+        const user = await db.findUser({ email: customerEmail });
+        if (user) {
+          await db.updateUser({ email: customerEmail }, {
+            $set: { subscription: { stripeID, expires: subscription.current_period_end, status: subscription.status } }
+          });
+          logger.info('Checkout completed', { email: customerEmail, status: subscription.status });
+        }
+      }
+    }
+
+    // Handle invoice paid (recurring payment success)
+    if (event.type === "invoice.paid") {
+      const { customer: stripeID, subscription: subscriptionId } = eventObject;
+      if (subscriptionId && stripeID) {
+        const [subscription, customer] = await Promise.all([
+          stripe.subscriptions.retrieve(subscriptionId),
+          stripe.customers.retrieve(stripeID)
+        ]);
+        if (customer?.email) {
+          const customerEmail = customer.email.toLowerCase();
+          const user = await db.findUser({ email: customerEmail });
+          if (user) {
+            await db.updateUser({ email: customerEmail }, {
+              $set: { subscription: { stripeID, expires: subscription.current_period_end, status: subscription.status } }
+            });
+            logger.info('Invoice paid', { email: customerEmail });
+          }
+        }
+      }
+    }
+
+    // Handle invoice payment failed
+    if (event.type === "invoice.payment_failed") {
+      const { customer: stripeID } = eventObject;
+      if (stripeID) {
+        const customer = await stripe.customers.retrieve(stripeID);
+        if (customer?.email) {
+          const customerEmail = customer.email.toLowerCase();
+          const user = await db.findUser({ email: customerEmail });
+          if (user) {
+            await db.updateUser({ email: customerEmail }, {
+              $set: { 'subscription.paymentFailed': true, 'subscription.paymentFailedAt': Date.now() }
+            });
+            logger.warn('Invoice payment failed', { email: customerEmail });
+          }
+        }
+      }
+    }
 
     return c.body(null, 200);
   } catch (e) {
@@ -1340,28 +1395,16 @@ app.post("/api/portal", authMiddleware, csrfProtection, async (c) => {
 });
 
 // ==== STATIC FILE SERVING (Production) ====
-// All /api/* routes are handled above. Everything else is static/SPA.
 const staticDir = resolve(__dirname, config.staticDir);
 
-// Serve static assets - skip /api/* paths
-app.use('*', async (c, next) => {
-  // Skip API routes - they're handled by route handlers above
-  if (c.req.path.startsWith('/api/')) {
-    return next();
-  }
+// Serve static files
+app.use('/*', serveStatic({ root: staticDir }));
 
-  // Try to serve static file
-  const staticMiddleware = serveStatic({ root: config.staticDir });
-  return staticMiddleware(c, next);
-});
-
-// SPA fallback - serve index.html for client-side routing
+// SPA fallback — only for non-asset routes
 app.get('*', async (c) => {
-  // Skip API routes
-  if (c.req.path.startsWith('/api/')) {
-    return c.json({ error: 'Not found' }, 404);
+  if (c.req.path.startsWith('/api/') || c.req.path.match(/\.\w+$/)) {
+    return c.notFound();
   }
-
   try {
     const indexPath = resolve(staticDir, 'index.html');
     const file = await promisify(readFile)(indexPath);
@@ -1404,11 +1447,12 @@ function isProd() {
 }
 
 /**
- * Load environment variables from local .env file
+ * Load environment variables from .env and optional .env.local file.
  *
- * Reads key=value pairs from backend/.env into process.env. Creates .env
- * from .env.example if it doesn't exist. Handles quoted values, comments,
- * and values containing '=' characters. Only called in non-production mode.
+ * Reads in two passes: backend/.env first (may be symlink to shared creds),
+ * then backend/.env.local for project-specific overrides (wins on conflict).
+ * Creates .env from .env.example if it doesn't exist. Only called in
+ * non-production mode — Railway injects vars directly in prod.
  *
  * @returns {void}
  */
@@ -1416,13 +1460,13 @@ function loadLocalENV() {
   const __filename = fileURLToPath(import.meta.url);
   const __dirname = dirname(__filename);
   const envFilePath = resolve(__dirname, './.env');
+  const envLocalPath = resolve(__dirname, './.env.local');
   const envExamplePath = resolve(__dirname, './.env.example');
 
   // Check if .env exists, if not create it from .env.example
   try {
     statSync(envFilePath);
   } catch (err) {
-    // .env doesn't exist, try to create it from .env.example
     try {
       const exampleData = readFileSync(envExamplePath, 'utf8');
       writeFileSync(envFilePath, exampleData);
@@ -1432,26 +1476,35 @@ function loadLocalENV() {
     }
   }
 
+  // Load .env (may be symlink to shared creds)
+  loadEnvFile(envFilePath);
+
+  // Load .env.local overrides (project-specific, optional)
+  loadEnvFile(envLocalPath);
+}
+
+/**
+ * Parse a .env file and apply key=value pairs to process.env.
+ * Skips blank lines and comments. Handles quoted values and values containing '='.
+ * Silently skips if file doesn't exist.
+ * @param {string} filePath - Absolute path to the .env file
+ * @returns {void}
+ */
+function loadEnvFile(filePath) {
   try {
-    const data = readFileSync(envFilePath, 'utf8');
-    const lines = data.split(/\r?\n/);
-    for (let line of lines) {
+    const data = readFileSync(filePath, 'utf8');
+    for (let line of data.split(/\r?\n/)) {
       if (!line || line.trim().startsWith('#')) continue;
-
-      // Split only on first = and handle quoted values
       let [key, ...valueParts] = line.split('=');
-      let value = valueParts.join('='); // Rejoin in case value contains =
-
+      let value = valueParts.join('=');
       if (key && value) {
         key = key.trim();
-        value = value.trim();
-        // Remove surrounding quotes if present
-        value = value.replace(/^["']|["']$/g, '');
+        value = value.trim().replace(/^["']|["']$/g, '');
         process.env[key] = value;
       }
     }
-  } catch (err) {
-    logger.error('Failed to load .env file', { error: err.message });
+  } catch {
+    // File doesn't exist or unreadable — silent
   }
 }
 
