@@ -10,6 +10,12 @@ COPY backend/package*.json ./backend/
 # Install dependencies
 RUN npm install && cd backend && npm install
 
+# Analytics env vars for build-time access
+ARG VITE_ANALYTICS_SRC
+ARG VITE_ANALYTICS_ID
+ENV VITE_ANALYTICS_SRC=$VITE_ANALYTICS_SRC
+ENV VITE_ANALYTICS_ID=$VITE_ANALYTICS_ID
+
 # Copy source code
 COPY . .
 

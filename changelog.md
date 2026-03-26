@@ -1,5 +1,10 @@
 ## CHANGELOG
 
+0.6.0
+
+  Add dynamic analytics
+  Update CSP allowlist
+
 0.5.0
 
   Update skateboard 2.30.0

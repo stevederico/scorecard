@@ -48,6 +48,14 @@ const appRoutes = [
  * @param {Array} config.appRoutes - Route configuration array
  * @param {string} config.defaultRoute - Initial route path
  */
+if (import.meta.env.VITE_ANALYTICS_ID && import.meta.env.VITE_ANALYTICS_SRC) {
+  const s = document.createElement('script');
+  s.defer = true;
+  s.src = import.meta.env.VITE_ANALYTICS_SRC;
+  s.dataset.websiteId = import.meta.env.VITE_ANALYTICS_ID;
+  document.head.appendChild(s);
+}
+
 createSkateboardApp({
   constants,
   appRoutes,
