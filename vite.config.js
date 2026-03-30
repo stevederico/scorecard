@@ -78,10 +78,9 @@ const htmlReplacePlugin = () => {
  * Dynamic robots.txt generation plugin
  *
  * Generates robots.txt at build time with:
- * - Bot-specific rules (Googlebot, Bingbot, Applebot, social crawlers)
- * - Protected routes (/app/, /console/, /signin/, /signup/)
+ * - Open crawling for all bots and AI search bots
+ * - Blocks training-only crawlers (CCBot)
  * - Sitemap reference from constants.json
- * - Disallows all other bots from entire site
  *
  * @returns {import('vite').Plugin} Vite plugin object
  */
@@ -94,43 +93,30 @@ const dynamicRobotsPlugin = () => {
                 ? constants.companyWebsite
                 : `https://${constants.companyWebsite}`;
 
-            const robotsContent = `User-agent: Googlebot
-Disallow: /app/
-Disallow: /console/
-Disallow: /signin/
-Disallow: /signup/
+            const robotsContent = `User-agent: *
+Allow: /
 
-User-agent: Bingbot
-Disallow: /app/
-Disallow: /console/
-Disallow: /signin/
-Disallow: /signup/
+# AI search bots — welcome
+User-agent: GPTBot
+Allow: /
 
-User-agent: Applebot
-Disallow: /app/
-Disallow: /console/
-Disallow: /signin/
-Disallow: /signup/
+User-agent: ChatGPT-User
+Allow: /
 
-User-agent: facebookexternalhit
-Disallow: /app/
-Disallow: /console/
-Disallow: /signin/
-Disallow: /signup/
+User-agent: PerplexityBot
+Allow: /
 
-User-agent: Facebot
-Disallow: /app/
-Disallow: /console/
-Disallow: /signin/
-Disallow: /signup/
+User-agent: ClaudeBot
+Allow: /
 
-User-agent: Twitterbot
-Disallow: /app/
-Disallow: /console/
-Disallow: /signin/
-Disallow: /signup/
+User-agent: anthropic-ai
+Allow: /
 
-User-agent: *
+User-agent: Google-Extended
+Allow: /
+
+# Block training-only crawlers
+User-agent: CCBot
 Disallow: /
 
 Sitemap: ${website}/sitemap.xml
