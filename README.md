@@ -76,4 +76,6 @@ MIT License — see [LICENSE](LICENSE) for details.
 
 <div align="center">
   Built by <a href="https://github.com/stevederico">Steve Derico</a>
+  <br />
+  Made with <a href="https://github.com/stevederico/skateboard">Skateboard</a> — a React boilerplate with auth and payments
 </div>
