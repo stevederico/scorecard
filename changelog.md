@@ -1,5 +1,12 @@
 ## CHANGELOG
 
+0.7.0
+
+  Bump skateboard 3.4.0
+  Drop demo scaffolding
+  Migrate to react-router
+  Migrate to vendored icons
+
 0.6.0
 
   Add dynamic analytics
