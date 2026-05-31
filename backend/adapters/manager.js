@@ -1,6 +1,4 @@
 import { SQLiteProvider } from './sqlite.js';
-import { PostgreSQLProvider } from './postgres.js';
-import { MongoDBProvider } from './mongodb.js';
 
 /**
  * Database manager implementing factory pattern for multi-database support
@@ -41,13 +39,17 @@ class DatabaseManager {
           provider = new SQLiteProvider();
           break;
         case 'postgresql':
-        case 'postgres':
+        case 'postgres': {
+          const { PostgreSQLProvider } = await import('./postgres.js');
           provider = new PostgreSQLProvider();
           break;
+        }
         case 'mongodb':
-        case 'mongo':
+        case 'mongo': {
+          const { MongoDBProvider } = await import('./mongodb.js');
           provider = new MongoDBProvider();
           break;
+        }
         default:
           throw new Error(`Unsupported database type: ${dbType}`);
       }
@@ -187,6 +189,26 @@ class DatabaseManager {
   async insertAuth(dbType, dbName, connectionString, authData) {
     const { provider, database } = await this.getDatabase(dbType, dbName, connectionString);
     return await provider.insertAuth(database, authData);
+  }
+
+  /**
+   * Update authentication record (currently password only)
+   *
+   * Used by lazy password-hash migration on successful login.
+   *
+   * @async
+   * @param {string} dbType - Database type
+   * @param {string} dbName - Database name
+   * @param {string} connectionString - Connection string or file path
+   * @param {Object} query - Query object with email
+   * @param {string} query.email - Email of auth record to update
+   * @param {Object} update - Fields to update
+   * @param {string} [update.password] - New password hash
+   * @returns {Promise<{modifiedCount: number}>} Number of modified rows
+   */
+  async updateAuth(dbType, dbName, connectionString, query, update) {
+    const { provider, database } = await this.getDatabase(dbType, dbName, connectionString);
+    return await provider.updateAuth(database, query, update);
   }
 
   /**
