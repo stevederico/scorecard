@@ -18,18 +18,17 @@
  */
 import './assets/styles.css';
 import { createSkateboardApp } from '@stevederico/skateboard-ui/App';
+import type { AppRoute } from '@stevederico/skateboard-ui/App';
 import constants from './constants.json';
-import BaseballView from './components/BaseballView.jsx';
+import BaseballView from './components/BaseballView';
 
 /**
  * Application route configuration
  *
  * Maps route paths to view components. Routes are relative to root (no leading slash).
  * The shell handles route registration, navigation, and layout.
- *
- * @type {Array<{path: string, element: JSX.Element}>}
  */
-const appRoutes = [
+const appRoutes: AppRoute[] = [
   { path: 'home', element: <BaseballView /> }
 ];
 

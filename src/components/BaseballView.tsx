@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import type { KeyboardEvent } from 'react';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@stevederico/skateboard-ui/shadcn/ui/card';
 import { Button } from '@stevederico/skateboard-ui/shadcn/ui/button';
@@ -7,11 +8,50 @@ import { Popover, PopoverContent, PopoverTrigger } from '@stevederico/skateboard
 import { ChevronLeft, ChevronRight, RotateCcw } from '@stevederico/skateboard-ui/icons';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@stevederico/skateboard-ui/shadcn/ui/drawer';
 
-const POSITIONS = {
+/** A single player in a team's batting lineup. */
+interface Player {
+  /** Jersey number */
+  num: string;
+  /** Player name */
+  name: string;
+  /** Fielding position abbreviation */
+  pos: string;
+}
+
+/** The four bases a runner can occupy/score. */
+type Base = 'first' | 'second' | 'third' | 'home';
+
+/** A single at-bat cell: result notation plus base advancement and out count. */
+interface AtBat {
+  /** Scoring notation (e.g. 'K', '1B', '6-3') */
+  result: string;
+  /** Runner reached first base */
+  first: boolean;
+  /** Runner reached second base */
+  second: boolean;
+  /** Runner reached third base */
+  third: boolean;
+  /** Runner scored (home) */
+  home: boolean;
+  /** Outs recorded on this at-bat (0, 1, or 2 for a double play) */
+  out: number;
+}
+
+/** A team's full scorecard: name, 9-player lineup, and a 9x9 at-bat grid. */
+interface Team {
+  /** Team name */
+  name: string;
+  /** Batting lineup (9 players) */
+  players: Player[];
+  /** At-bats indexed by [playerIdx][inning] */
+  atBats: AtBat[][];
+}
+
+const POSITIONS: Record<number, string> = {
   1: 'P', 2: 'C', 3: '1B', 4: '2B', 5: '3B', 6: 'SS', 7: 'LF', 8: 'CF', 9: 'RF'
 };
 
-const INITIAL_PLAYERS = [
+const INITIAL_PLAYERS: Player[] = [
   { num: '', name: '', pos: '' },
   { num: '', name: '', pos: '' },
   { num: '', name: '', pos: '' },
@@ -23,14 +63,14 @@ const INITIAL_PLAYERS = [
   { num: '', name: '', pos: '' },
 ];
 
-const INITIAL_ATBAT = { result: '', first: false, second: false, third: false, home: false, out: 0 };
+const INITIAL_ATBAT: AtBat = { result: '', first: false, second: false, third: false, home: false, out: 0 };
 
 /**
  * Creates a fresh team object with default players and at-bats.
- * @param {string} name - Team name
- * @returns {{ name: string, players: Array, atBats: Array }} Team object
+ * @param name - Team name
+ * @returns Team object
  */
-const createTeam = (name) => ({
+const createTeam = (name: string): Team => ({
   name,
   players: INITIAL_PLAYERS.map(p => ({ ...p })),
   atBats: Array(9).fill(null).map(() => Array(9).fill(null).map(() => ({ ...INITIAL_ATBAT })))
@@ -43,15 +83,15 @@ const createTeam = (name) => ({
  * and standard baseball notation (K, BB, 6-3, F8, etc).
  *
  * @component
- * @returns {JSX.Element} Baseball scorecard view
+ * @returns Baseball scorecard view
  */
 export default function BaseballView() {
-  const [teams, setTeams] = useState([createTeam('AWAY'), createTeam('HOME')]);
+  const [teams, setTeams] = useState<Team[]>([createTeam('AWAY'), createTeam('HOME')]);
   const [activeTeam, setActiveTeam] = useState(0);
-  const [openPopover, setOpenPopover] = useState(null);
+  const [openPopover, setOpenPopover] = useState<string | null>(null);
   const [mobilePlayerIdx, setMobilePlayerIdx] = useState(0);
   const [mobileInningIdx, setMobileInningIdx] = useState(0);
-  const [mobileView, setMobileView] = useState('card');
+  const [mobileView, setMobileView] = useState<'card' | 'stats'>('card');
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const players = teams[activeTeam].players;
@@ -59,21 +99,21 @@ export default function BaseballView() {
 
   /**
    * Counts outs in a specific inning.
-   * @param {number} inning - Inning index
-   * @returns {number} Number of outs
+   * @param inning - Inning index
+   * @returns Number of outs
    */
-  const getInningOuts = (inning) => {
+  const getInningOuts = (inning: number): number => {
     return atBats.reduce((sum, player) => sum + (player[inning].out || 0), 0);
   };
 
   /**
    * Gets the ordinal out number for a specific cell within its inning.
    * Counts outs from players above in the batting order.
-   * @param {number} playerIdx - Player index
-   * @param {number} inning - Inning index
-   * @returns {number} The out number (1, 2, or 3) for this cell
+   * @param playerIdx - Player index
+   * @param inning - Inning index
+   * @returns The out number (1, 2, or 3) for this cell
    */
-  const getOutNumber = (playerIdx, inning) => {
+  const getOutNumber = (playerIdx: number, inning: number): number => {
     let outsBeforeThis = 0;
     for (let i = 0; i < playerIdx; i++) {
       outsBeforeThis += atBats[i][inning].out || 0;
@@ -83,10 +123,10 @@ export default function BaseballView() {
 
   /**
    * Checks if a result is an out.
-   * @param {string} result - At-bat result
-   * @returns {boolean} True if result is an out
+   * @param result - At-bat result
+   * @returns True if result is an out
    */
-  const isOutResult = (result) => {
+  const isOutResult = (result: string): boolean => {
     return ['K', 'F', 'GO', 'PO'].some(r => result.includes(r)) ||
            result.includes('-') ||
            result === 'DP';
@@ -94,11 +134,11 @@ export default function BaseballView() {
 
   /**
    * Updates player info in the active team's lineup.
-   * @param {number} idx - Player index
-   * @param {string} field - Field to update
-   * @param {string} value - New value
+   * @param idx - Player index
+   * @param field - Field to update
+   * @param value - New value
    */
-  const updatePlayer = (idx, field, value) => {
+  const updatePlayer = (idx: number, field: keyof Player, value: string) => {
     const newTeams = [...teams];
     const newPlayers = [...newTeams[activeTeam].players];
     newPlayers[idx] = { ...newPlayers[idx], [field]: value };
@@ -109,11 +149,11 @@ export default function BaseballView() {
   /**
    * Updates at-bat result for a specific cell.
    * Enforces 3-out limit per inning.
-   * @param {number} playerIdx - Player index
-   * @param {number} inning - Inning index
-   * @param {string} result - At-bat result notation
+   * @param playerIdx - Player index
+   * @param inning - Inning index
+   * @param result - At-bat result notation
    */
-  const updateAtBat = (playerIdx, inning, result) => {
+  const updateAtBat = (playerIdx: number, inning: number, result: string) => {
     const currentOuts = getInningOuts(inning);
     const currentCellIsOut = atBats[playerIdx][inning].out > 0;
     const newResultIsOut = isOutResult(result);
@@ -142,11 +182,11 @@ export default function BaseballView() {
 
   /**
    * Toggles base advancement for a runner on the active team.
-   * @param {number} playerIdx - Player index
-   * @param {number} inning - Inning index
-   * @param {string} base - Base to toggle
+   * @param playerIdx - Player index
+   * @param inning - Inning index
+   * @param base - Base to toggle
    */
-  const toggleBase = (playerIdx, inning, base) => {
+  const toggleBase = (playerIdx: number, inning: number, base: Base) => {
     const newTeams = [...teams];
     const newAtBats = [...newTeams[activeTeam].atBats];
     newAtBats[playerIdx] = [...newAtBats[playerIdx]];
@@ -168,10 +208,10 @@ export default function BaseballView() {
 
   /**
    * Updates the active team's name.
-   * @param {number} idx - Team index (0=away, 1=home)
-   * @param {string} name - New team name
+   * @param idx - Team index (0=away, 1=home)
+   * @param name - New team name
    */
-  const updateTeamName = (idx, name) => {
+  const updateTeamName = (idx: number, name: string) => {
     const newTeams = [...teams];
     newTeams[idx] = { ...newTeams[idx], name };
     setTeams(newTeams);
@@ -179,18 +219,18 @@ export default function BaseballView() {
 
   /**
    * Calculates runs scored in an inning.
-   * @param {number} inning - Inning index
-   * @returns {number} Runs scored
+   * @param inning - Inning index
+   * @returns Runs scored
    */
-  const getInningRuns = (inning) => {
+  const getInningRuns = (inning: number): number => {
     return atBats.reduce((sum, player) => sum + (player[inning].home ? 1 : 0), 0);
   };
 
   /**
    * Calculates total hits.
-   * @returns {number} Total hits
+   * @returns Total hits
    */
-  const getTotalHits = () => {
+  const getTotalHits = (): number => {
     return atBats.flat().filter(ab =>
       ['1B', '2B', '3B', 'HR'].some(h => ab.result.includes(h))
     ).length;
@@ -201,9 +241,9 @@ export default function BaseballView() {
 
   /**
    * Handles result selection on mobile — updates at-bat and closes drawer.
-   * @param {string} result - At-bat result notation
+   * @param result - At-bat result notation
    */
-  const handleMobileResult = (result) => {
+  const handleMobileResult = (result: string) => {
     updateAtBat(mobilePlayerIdx, mobileInningIdx, result);
     setDrawerOpen(false);
   };
@@ -377,15 +417,15 @@ export default function BaseballView() {
                   <Input
                     placeholder="Custom..."
                     className="h-10 text-sm font-mono"
-                    onKeyDown={(e) => {
+                    onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
                       if (e.key === 'Enter') {
-                        handleMobileResult(e.target.value.toUpperCase());
+                        handleMobileResult(e.currentTarget.value.toUpperCase());
                       }
                     }}
                   />
                   <div className="flex items-center gap-2 pt-2 border-t">
                     <span className="text-sm text-muted-foreground">Bases:</span>
-                    {['first', 'second', 'third', 'home'].map((base, i) => (
+                    {(['first', 'second', 'third', 'home'] as Base[]).map((base, i) => (
                       <Button
                         key={base}
                         variant={mobileAb[base] ? 'default' : 'outline'}
@@ -575,10 +615,9 @@ export default function BaseballView() {
                         return (
                           <td key={iIdx} className={`border border-foreground/30 p-0 [&>button]:p-0 ${inningClosed ? 'bg-muted/50' : ''}`}>
                             <Popover open={openPopover === cellKey} onOpenChange={(open) => !inningClosed && setOpenPopover(open ? cellKey : null)}>
-                              <PopoverTrigger asChild>
-                                <div className={`w-full h-14 transition-colors cursor-pointer ${inningClosed ? 'cursor-not-allowed opacity-30' : 'hover:bg-accent/30'}`}>
-                                  {/* Diamond Shape */}
-                                  <svg viewBox="0 0 68 56" className="w-full h-full">
+                              <PopoverTrigger render={<div className={`w-full h-14 transition-colors cursor-pointer ${inningClosed ? 'cursor-not-allowed opacity-30' : 'hover:bg-accent/30'}`} />}>
+                                {/* Diamond Shape */}
+                                <svg viewBox="0 0 68 56" className="w-full h-full">
                                     {/* Diamond outline */}
                                     <path
                                       d="M34 4 L56 28 L34 52 L12 28 Z"
@@ -618,7 +657,6 @@ export default function BaseballView() {
                                       </>
                                     )}
                                   </svg>
-                                </div>
                               </PopoverTrigger>
                               <PopoverContent className="w-64 p-2">
                                 <div className="space-y-2">
@@ -649,16 +687,16 @@ export default function BaseballView() {
                                     <Input
                                       placeholder="Custom..."
                                       className="h-7 text-xs font-mono"
-                                      onKeyDown={(e) => {
+                                      onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
                                         if (e.key === 'Enter') {
-                                          updateAtBat(pIdx, iIdx, e.target.value.toUpperCase());
+                                          updateAtBat(pIdx, iIdx, e.currentTarget.value.toUpperCase());
                                         }
                                       }}
                                     />
                                   </div>
                                   <div className="flex gap-2 pt-2 border-t">
                                     <p className="text-xs text-muted-foreground">Bases:</p>
-                                    {['first', 'second', 'third', 'home'].map((base, i) => (
+                                    {(['first', 'second', 'third', 'home'] as Base[]).map((base, i) => (
                                       <Button
                                         key={base}
                                         variant={ab[base] ? 'default' : 'outline'}
