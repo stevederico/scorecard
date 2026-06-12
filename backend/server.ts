@@ -322,6 +322,58 @@ function resolveEnvironmentVariables(str: string): string {
   });
 }
 
+/** True for non-null objects, narrowing `unknown` to an indexable record. */
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+/**
+ * Validate the raw shape of backend/config.json after JSON.parse.
+ *
+ * @param value - Parsed-but-unvalidated JSON value
+ * @returns The narrowed config shape consumed by the loader
+ * @throws If the value is not an object with a valid `database` block
+ */
+function parseConfigJson(value: unknown): { staticDir?: string; database: DatabaseConfig } {
+  if (!isRecord(value)) throw new Error('config.json must be an object');
+  const { staticDir, database } = value;
+  if (staticDir !== undefined && typeof staticDir !== 'string') {
+    throw new Error('config.json staticDir must be a string');
+  }
+  if (!isRecord(database)) throw new Error('config.json database must be an object');
+  if (
+    typeof database.db !== 'string' ||
+    typeof database.dbType !== 'string' ||
+    typeof database.connectionString !== 'string'
+  ) {
+    throw new Error('config.json database must have db, dbType, and connectionString strings');
+  }
+  return {
+    staticDir,
+    database: {
+      db: database.db,
+      dbType: database.dbType,
+      connectionString: database.connectionString
+    }
+  };
+}
+
+/**
+ * Validate a decoded JWT body into a JwtPayload.
+ *
+ * @param value - JSON-parsed JWT body of unknown shape
+ * @returns The narrowed payload
+ * @throws If userID/exp are missing or wrong type
+ */
+function parseJwtPayload(value: unknown): JwtPayload {
+  if (!isRecord(value)) throw new Error('Invalid token payload');
+  const { userID, exp } = value;
+  if (typeof userID !== 'string' || typeof exp !== 'number') {
+    throw new Error('Invalid token payload');
+  }
+  return { userID, exp };
+}
+
 // Load and process configuration
 let config: BackendConfig;
 try {
@@ -329,7 +381,8 @@ try {
   const __dirname = dirname(__filename);
   const configPath = resolve(__dirname, './config.json');
   const configData = await promisify(readFile)(configPath);
-  const rawConfig = JSON.parse(configData.toString()) as { staticDir?: string; database: DatabaseConfig };
+  const parsed: unknown = JSON.parse(configData.toString());
+  const rawConfig = parseConfigJson(parsed);
 
   // Resolve environment variables in configuration
   config = {
@@ -619,7 +672,7 @@ function jwtVerify(token: string, secret: string): JwtPayload {
   if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
     throw new Error('Invalid signature');
   }
-  const payload = JSON.parse(Buffer.from(body, 'base64url').toString()) as JwtPayload;
+  const payload = parseJwtPayload(JSON.parse(Buffer.from(body, 'base64url').toString()));
   if (payload.exp && Math.floor(Date.now() / 1000) > payload.exp) {
     const err = new Error('Token expired');
     err.name = 'TokenExpiredError';
