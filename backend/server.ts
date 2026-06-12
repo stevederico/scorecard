@@ -20,6 +20,17 @@ import type { BackendConfig, BoundDatabase, CsrfTokenEntry, DatabaseConfig, JwtP
 /** Hono context environment: authMiddleware sets userID for downstream middleware/handlers. */
 type AppEnv = { Variables: { userID: string } };
 
+/**
+ * Extract a human-readable message from an unknown thrown value.
+ *
+ * Narrows to Error to read `.message`; falls back to String() for non-Error
+ * throwables. Used in catch blocks instead of casting the caught value.
+ *
+ * @param e - Unknown caught value
+ * @returns Error message string
+ */
+const errorMessage = (e: unknown): string => (e instanceof Error ? e.message : String(e));
+
 // ==== SERVER CONFIG ====
 const port = parseInt(process.env.PORT || "8000");
 
@@ -323,7 +334,12 @@ function resolveEnvironmentVariables(str: string): string {
 }
 
 /**
+<<<<<<< /var/folders/36/sb_krt0x59bb7dwlkz502dbm0000gn/T/sk-mf-cur.tmp
  * Type guard validating that a parsed JSON value matches the config shape
+=======
+ * Validate the parsed config.json shape: a `database` object carrying string
+ * `db`, `dbType`, and `connectionString`. Narrows unknown JSON before use.
+>>>>>>> /var/folders/36/sb_krt0x59bb7dwlkz502dbm0000gn/T/sk-mf-new.tmp
  *
  * @param value - Parsed JSON value
  * @returns True if the value matches the expected config shape
@@ -359,7 +375,7 @@ try {
     }
   };
 } catch (err) {
-  logger.error('Failed to load config, using defaults', { error: (err as Error).message });
+  logger.error('Failed to load config, using defaults', { error: errorMessage(err) });
   config = {
     staticDir: '../dist',
     database: {
@@ -616,7 +632,14 @@ function jwtSign(payload: JwtPayload, secret: string): string {
 }
 
 /**
+<<<<<<< /var/folders/36/sb_krt0x59bb7dwlkz502dbm0000gn/T/sk-mf-cur.tmp
  * Type guard validating that a decoded JWT body matches JwtPayload
+=======
+ * Validate a decoded JWT body matches the expected payload shape.
+ *
+ * Checks the fields jwtVerify and authMiddleware read: `userID` (string) and
+ * `exp` (number). Narrows unknown JSON before it is trusted as a JwtPayload.
+>>>>>>> /var/folders/36/sb_krt0x59bb7dwlkz502dbm0000gn/T/sk-mf-new.tmp
  *
  * @param value - Decoded JSON value from the token body
  * @returns True if the value is a valid JwtPayload
@@ -685,7 +708,7 @@ async function generateToken(userID: string): Promise<string> {
 
     return jwtSign(payload, JWT_SECRET);
   } catch (error) {
-    logger.error('Token generation error', { error: (error as Error).message });
+    logger.error('Token generation error', { error: errorMessage(error) });
     throw error;
   }
 }
@@ -721,11 +744,11 @@ async function authMiddleware(c: Context<AppEnv>, next: Next) {
     c.set('userID', normalizedUserID);
     await next();
   } catch (error) {
-    if ((error as Error).name === 'TokenExpiredError') {
+    if (error instanceof Error && error.name === 'TokenExpiredError') {
       logger.debug('Token expired');
       return c.json({ error: "Token expired" }, 401);
     }
-    logger.error('Token verification error', { error: (error as Error).message });
+    logger.error('Token verification error', { error: errorMessage(error) });
     return c.json({ error: "Invalid token" }, 401);
   }
 }
@@ -874,13 +897,73 @@ function getSubscriptionPeriodEnd(sub: StripeSubscriptionLike): number | null {
 }
 
 /**
+ * Narrow an unknown Stripe payload to the subscription fields this server
+ * reads. Validates `status` is a string; the optional period-end fields are
+ * read defensively by getSubscriptionPeriodEnd, so their presence is not
+ * required here.
+ *
+ * @param value - Unknown Stripe subscription-shaped object
+ * @returns True if the value carries a string `status`
+ */
+function isStripeSubscriptionLike(value: unknown): value is StripeSubscriptionLike {
+  return typeof value === 'object' && value !== null
+    && 'status' in value && typeof value.status === 'string';
+}
+
+/**
+ * Read the customer ID and subscription fields off a webhook event object.
+ *
+ * Replaces an `as unknown as` cast on `event.data.object`: pulls `customer`
+ * (when a string) and the StripeSubscriptionLike fields (status, period-end,
+ * items) directly from the validated object, defaulting `status` to '' when
+ * absent — matching the prior cast's blind-trust behavior without asserting.
+ *
+ * @param value - The webhook `event.data.object`
+ * @returns Customer ID (optional) plus subscription fields
+ */
+function toSubscriptionEvent(value: unknown): { customer?: string } & StripeSubscriptionLike {
+  if (typeof value !== 'object' || value === null) {
+    return { status: '' };
+  }
+  const customer = 'customer' in value && typeof value.customer === 'string' ? value.customer : undefined;
+  const status = 'status' in value && typeof value.status === 'string' ? value.status : '';
+  const current_period_end = 'current_period_end' in value && typeof value.current_period_end === 'number'
+    ? value.current_period_end
+    : undefined;
+  const items = 'items' in value && isStripeSubscriptionItems(value.items) ? value.items : undefined;
+  return { customer, status, current_period_end, items };
+}
+
+/**
+ * Validate the `items` shape read by getSubscriptionPeriodEnd: an object whose
+ * optional `data` is an array of objects with an optional numeric
+ * `current_period_end` (basil API location for the period end).
+ *
+ * @param value - Candidate `items` value
+ * @returns True if the value matches StripeSubscriptionLike['items']
+ */
+function isStripeSubscriptionItems(value: unknown): value is StripeSubscriptionLike['items'] {
+  if (typeof value !== 'object' || value === null) return false;
+  if (!('data' in value)) return true;
+  const { data } = value;
+  if (data === undefined) return true;
+  return Array.isArray(data)
+    && data.every((item) => typeof item === 'object' && item !== null);
+}
+
+/**
  * Resolve a Stripe customer ID to a normalized lowercase email.
  *
  * @param stripeID - Stripe customer ID
  * @returns Normalized email, or null if missing
  */
 async function resolveCustomerEmail(stripeID: string): Promise<string | null> {
-  const customer = await stripe!.customers.retrieve(stripeID) as Stripe.Customer;
+  const s = stripe;
+  if (!s) {
+    logger.warn('Webhook: Stripe not configured', { stripeID });
+    return null;
+  }
+  const customer = await s.customers.retrieve(stripeID) as Stripe.Customer;
   if (!customer?.email) {
     logger.warn('Webhook: Customer has no email', { stripeID });
     return null;
@@ -896,7 +979,7 @@ async function resolveCustomerEmail(stripeID: string): Promise<string | null> {
  * @param stripeSub - Stripe subscription object
  */
 function buildSubscriptionPatch(stripeID: string, stripeSub: Stripe.Subscription): Subscription {
-  const expires = getSubscriptionPeriodEnd(stripeSub as unknown as StripeSubscriptionLike);
+  const expires = isStripeSubscriptionLike(stripeSub) ? getSubscriptionPeriodEnd(stripeSub) : null;
   if (expires === null) {
     logger.error('Webhook: subscription has no current_period_end at top level or item level', { stripeID });
   }
@@ -928,16 +1011,24 @@ async function applyUserPatch(email: string, $set: UserSetFields): Promise<boole
 app.post("/api/payment", async (c) => {
   logger.info('Payment webhook received');
 
+  const s = stripe;
+  if (!s) return c.json({ error: 'Stripe is not configured' }, 503);
+
   const signature = c.req.header("stripe-signature");
+  if (!signature) return c.json({ error: 'Missing signature' }, 400);
+
+  const endpointSecret = process.env.STRIPE_ENDPOINT_SECRET;
+  if (!endpointSecret) return c.json({ error: 'Stripe is not configured' }, 503);
+
   const rawBody = await c.req.arrayBuffer();
   const body = Buffer.from(rawBody);
 
   let event: Stripe.Event;
   try {
-    event = await stripe!.webhooks.constructEventAsync(body, signature!, process.env.STRIPE_ENDPOINT_SECRET!);
+    event = await s.webhooks.constructEventAsync(body, signature, endpointSecret);
     logger.debug('Webhook event received', { type: event.type });
   } catch (e) {
-    logger.error('Webhook signature verification failed', { error: (e as Error).message });
+    logger.error('Webhook signature verification failed', { error: errorMessage(e) });
     return c.body(null, 400);
   }
 
@@ -955,7 +1046,7 @@ app.post("/api/payment", async (c) => {
     const eventObject = event.data.object;
 
     if (["customer.subscription.deleted", "customer.subscription.updated", "customer.subscription.created"].includes(event.type)) {
-      const subLike = eventObject as unknown as { customer?: string } & StripeSubscriptionLike;
+      const subLike = toSubscriptionEvent(eventObject);
       const { customer: stripeID, status } = subLike;
       if (!stripeID) {
         logger.error('Webhook missing customer ID', { type: event.type });
@@ -975,7 +1066,7 @@ app.post("/api/payment", async (c) => {
       const { customer: stripeID, customer_email, subscription: subscriptionId } = eventObject as { customer?: string; customer_email?: string | null; subscription?: string };
       if (subscriptionId && stripeID) {
         const [subscription, email] = await Promise.all([
-          stripe!.subscriptions.retrieve(subscriptionId),
+          s.subscriptions.retrieve(subscriptionId),
           customer_email ? Promise.resolve(customer_email.toLowerCase()) : resolveCustomerEmail(stripeID)
         ]);
         if (email) {
@@ -996,7 +1087,7 @@ app.post("/api/payment", async (c) => {
       const subscriptionId = invoice.subscription ?? invoice.parent?.subscription_details?.subscription;
       if (subscriptionId && stripeID) {
         const [subscription, email] = await Promise.all([
-          stripe!.subscriptions.retrieve(subscriptionId),
+          s.subscriptions.retrieve(subscriptionId),
           resolveCustomerEmail(stripeID)
         ]);
         if (email) {
@@ -1022,7 +1113,7 @@ app.post("/api/payment", async (c) => {
 
     return c.body(null, 200);
   } catch (e) {
-    logger.error('Webhook processing error', { error: (e as Error).message });
+    logger.error('Webhook processing error', { error: errorMessage(e) });
     return c.body(null, 500);
   }
 });
@@ -1091,14 +1182,14 @@ app.post("/api/signup", async (c) => {
         await db.insertAuth({ email: email, password: hash, userID: insertID });
       } catch (authError) {
         // Rollback: delete the user we just created
-        logger.error('Auth insert failed, rolling back user creation', { error: (authError as Error).message });
+        logger.error('Auth insert failed, rolling back user creation', { error: errorMessage(authError) });
         try {
           const rollback = await db.deleteUser({ _id: insertID });
           if (rollback.deletedCount !== 1) {
             logger.error('Rollback failed - orphaned user record', { userID: insertID });
           }
         } catch (rollbackError) {
-          logger.error('Rollback failed - orphaned user record', { userID: insertID, error: (rollbackError as Error).message });
+          logger.error('Rollback failed - orphaned user record', { userID: insertID, error: errorMessage(rollbackError) });
         }
         throw authError;
       }
@@ -1114,14 +1205,16 @@ app.post("/api/signup", async (c) => {
         tokenExpires: tokenExpireTimestamp()
       }, 201);
     } catch (e) {
-      if ((e as Error).message?.includes('UNIQUE constraint failed') || (e as Error).message?.includes('duplicate key') || (e as { code?: number }).code === 11000) {
+      const isDuplicate = (e instanceof Error && (e.message.includes('UNIQUE constraint failed') || e.message.includes('duplicate key')))
+        || (typeof e === 'object' && e !== null && 'code' in e && e.code === 11000);
+      if (isDuplicate) {
         logger.warn('Signup failed - duplicate account');
         return c.json({ error: "Unable to create account with provided credentials" }, 400);
       }
       throw e;
     }
   } catch (e) {
-    logger.error('Signup error', { error: (e as Error).message });
+    logger.error('Signup error', { error: errorMessage(e) });
     return c.json({ error: "Server error" }, 500);
   }
 });
@@ -1177,7 +1270,7 @@ app.post("/api/signin", async (c) => {
         await db.updateAuth({ email }, { password: newHash });
         logger.debug('Password hash migrated to scrypt');
       } catch (e) {
-        logger.warn('Password rehash failed', { error: (e as Error).message });
+        logger.warn('Password rehash failed', { error: errorMessage(e) });
       }
     }
 
@@ -1210,7 +1303,7 @@ app.post("/api/signin", async (c) => {
       tokenExpires: tokenExpireTimestamp()
     });
   } catch (e) {
-    logger.error('Signin error', { error: (e as Error).message });
+    logger.error('Signin error', { error: errorMessage(e) });
     return c.json({ error: "Server error" }, 500);
   }
 });
@@ -1241,7 +1334,7 @@ app.post("/api/signout", authMiddleware, async (c) => {
     logger.info('Signout success');
     return c.json({ message: "Signed out successfully" });
   } catch (e) {
-    logger.error('Signout error', { error: (e as Error).message });
+    logger.error('Signout error', { error: errorMessage(e) });
     return c.json({ error: "Server error" }, 500);
   }
 });
@@ -1297,7 +1390,7 @@ app.put("/api/me", authMiddleware, csrfProtection, async (c) => {
     const updatedUser = await db.findUser( { _id: userID });
     return c.json(updatedUser);
   } catch (err) {
-    logger.error('Update user error', { error: (err as Error).message });
+    logger.error('Update user error', { error: errorMessage(err) });
     return c.json({ error: "Failed to update user" }, 500);
   }
 });
@@ -1318,17 +1411,18 @@ app.post("/api/usage", authMiddleware, async (c) => {
     if (!user) return c.json({ error: "User not found" }, 404);
 
     // Check if user is a subscriber - subscribers get unlimited
-    const isSubscriber = user.subscription?.status === 'active' &&
-      (!user.subscription?.expires || user.subscription.expires > Math.floor(Date.now() / 1000));
+    const { subscription } = user;
+    const isSubscriber = subscription?.status === 'active' &&
+      (!subscription.expires || subscription.expires > Math.floor(Date.now() / 1000));
 
-    if (isSubscriber) {
+    if (isSubscriber && subscription) {
       return c.json({
         remaining: -1,
         total: -1,
         isSubscriber: true,
         subscription: {
-          status: user.subscription!.status,
-          expiresAt: user.subscription!.expires ? new Date(user.subscription!.expires * 1000).toISOString() : null
+          status: subscription.status,
+          expiresAt: subscription.expires ? new Date(subscription.expires * 1000).toISOString() : null
         }
       });
     }
@@ -1393,7 +1487,7 @@ app.post("/api/usage", authMiddleware, async (c) => {
     });
 
   } catch (error) {
-    logger.error('Usage tracking error', { error: (error as Error).message });
+    logger.error('Usage tracking error', { error: errorMessage(error) });
     return c.json({ error: "Server error" }, 500);
   }
 });
@@ -1401,6 +1495,9 @@ app.post("/api/usage", authMiddleware, async (c) => {
 // ==== PAYMENT ROUTES ====
 app.post("/api/checkout", authMiddleware, csrfProtection, async (c) => {
   try {
+    const s = stripe;
+    if (!s) return c.json({ error: 'Stripe is not configured' }, 503);
+
     const userID = c.get('userID');
     const body = await c.req.json<{ email?: string; lookup_key?: string }>();
     const { email, lookup_key } = body;
@@ -1411,7 +1508,7 @@ app.post("/api/checkout", authMiddleware, csrfProtection, async (c) => {
     const user = await db.findUser( { _id: userID });
     if (!user || user.email !== email) return c.json({ error: "Email mismatch" }, 403);
 
-    const prices = await stripe!.prices.list({ lookup_keys: [lookup_key], expand: ["data.product"] });
+    const prices = await s.prices.list({ lookup_keys: [lookup_key], expand: ["data.product"] });
 
     if (!prices.data || prices.data.length === 0) {
       return c.json({ error: `No price found for lookup_key: ${lookup_key}` }, 400);
@@ -1420,7 +1517,7 @@ app.post("/api/checkout", authMiddleware, csrfProtection, async (c) => {
     // Use FRONTEND_URL env var or origin header, fallback to localhost for dev
     const origin = process.env.FRONTEND_URL || c.req.header('origin') || `http://localhost:${port}`;
 
-    const session = await stripe!.checkout.sessions.create({
+    const session = await s.checkout.sessions.create({
       customer_email: email,
       mode: "subscription",
       payment_method_types: ["card"],
@@ -1432,13 +1529,16 @@ app.post("/api/checkout", authMiddleware, csrfProtection, async (c) => {
     });
     return c.json({ url: session.url, id: session.id, customerID: session.customer });
   } catch (e) {
-    logger.error('Checkout session error', { error: (e as Error).message });
+    logger.error('Checkout session error', { error: errorMessage(e) });
     return c.json({ error: "Stripe session failed" }, 500);
   }
 });
 
 app.post("/api/portal", authMiddleware, csrfProtection, async (c) => {
   try {
+    const s = stripe;
+    if (!s) return c.json({ error: 'Stripe is not configured' }, 503);
+
     const userID = c.get('userID');
     const body = await c.req.json<{ customerID?: string }>();
     const { customerID } = body;
@@ -1453,13 +1553,13 @@ app.post("/api/portal", authMiddleware, csrfProtection, async (c) => {
 
     // Use FRONTEND_URL env var or origin header, fallback to localhost for dev
     const origin = process.env.FRONTEND_URL || c.req.header('origin') || `http://localhost:${port}`;
-    const portalSession = await stripe!.billingPortal.sessions.create({
+    const portalSession = await s.billingPortal.sessions.create({
       customer: customerID,
       return_url: `${origin}/app/payment?portal=return`,
     });
     return c.json({ url: portalSession.url, id: portalSession.id });
   } catch (e) {
-    logger.error('Portal session error', { error: (e as Error).message });
+    logger.error('Portal session error', { error: errorMessage(e) });
     return c.json({ error: "Stripe portal failed" }, 500);
   }
 });
@@ -1539,7 +1639,7 @@ function loadLocalENV(): void {
       const exampleData = readFileSync(envExamplePath, 'utf8');
       writeFileSync(envFilePath, exampleData);
     } catch (exampleErr) {
-      logger.error('Failed to create .env from template', { error: (exampleErr as Error).message });
+      logger.error('Failed to create .env from template', { error: errorMessage(exampleErr) });
       return;
     }
   }

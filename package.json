@@ -2,7 +2,7 @@
   "name": "scorecard-app",
   "private": false,
   "version": "0.7.0",
-  "skateboardVersion": "3.9.0",
+  "skateboardVersion": "3.14.0",
   "type": "module",
   "workspaces": [
     "backend"
@@ -21,7 +21,7 @@
     "typecheck": "tsc -p tsconfig.json && tsc -p backend/tsconfig.json"
   },
   "dependencies": {
-    "@stevederico/skateboard-ui": "3.12.0",
+    "@stevederico/skateboard-ui": "4.3.0",
     "react": "19.2.6",
     "react-dom": "19.2.6",
     "react-router": "7.15.0"
