@@ -2,6 +2,9 @@ import { DatabaseSync as Database } from "node:sqlite";
 import { mkdir } from 'node:fs';
 import { promisify } from 'node:util';
 import type {
+  MakeDirectoryOptions
+} from 'node:fs';
+import type {
   AuthQuery,
   AuthRecord,
   AuthUpdate,
@@ -20,6 +23,28 @@ import type {
   UserUpdate,
   WebhookEventRecord
 } from '../types.ts';
+
+/** Promisified node:fs.mkdir — the live default for the {@link FsSeam}. */
+const mkdirAsync = promisify(mkdir);
+
+/** Filesystem operations this module needs — injectable so tests avoid mocking `node:fs`. */
+interface FsSeam {
+  mkdir(path: string, options: MakeDirectoryOptions): Promise<string | undefined>;
+}
+
+/** Live filesystem seam. Overridden in tests via {@link __setFsForTests}. */
+let fs: FsSeam = { mkdir: mkdirAsync };
+
+/**
+ * Test-only seam: swap the filesystem backend. Avoids `mock.module('node:fs')`, whose
+ * named/default exports don't survive `--experimental-test-module-mocks` reliably across
+ * Node versions (Node 24.14 breaks named-import resolution on the mocked builtin).
+ *
+ * @param seam - Replacement mkdir implementation
+ */
+export function __setFsForTests(seam: FsSeam): void {
+  fs = seam;
+}
 
 /**
  * Raw Users table row as returned by SELECT *, with flat subscription_* and
@@ -49,6 +74,64 @@ type TransactionStatementResult = {
   changes: number;
   lastInsertRowid: number | bigint | null;
 };
+
+/**
+ * Narrow an unknown SQLite row to a non-null object so its keys can be probed.
+ *
+ * @param value - Row returned by node:sqlite's `.get()` (typed `unknown`)
+ * @returns True when `value` is a non-null, non-array object
+ */
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+/**
+ * Type guard for a raw Users row. Checks the required, non-nullable columns
+ * (`_id`, `email`, `name`, `created_at`); the optional subscription and usage
+ * columns are validated implicitly by the transform logic in findUser.
+ *
+ * @param value - Row returned by `.get()`
+ * @returns True when `value` matches the UserRow required shape
+ */
+function isUserRow(value: unknown): value is UserRow {
+  return (
+    isRecord(value) &&
+    typeof value._id === 'string' &&
+    typeof value.email === 'string' &&
+    typeof value.name === 'string' &&
+    typeof value.created_at === 'number'
+  );
+}
+
+/**
+ * Type guard for an Auths row.
+ *
+ * @param value - Row returned by `.get()`
+ * @returns True when `value` matches the AuthRecord shape
+ */
+function isAuthRecord(value: unknown): value is AuthRecord {
+  return (
+    isRecord(value) &&
+    typeof value.email === 'string' &&
+    typeof value.password === 'string' &&
+    typeof value.userID === 'string'
+  );
+}
+
+/**
+ * Type guard for a WebhookEvents row.
+ *
+ * @param value - Row returned by `.get()`
+ * @returns True when `value` matches the WebhookEventRecord shape
+ */
+function isWebhookEventRecord(value: unknown): value is WebhookEventRecord {
+  return (
+    isRecord(value) &&
+    typeof value.event_id === 'string' &&
+    typeof value.event_type === 'string' &&
+    typeof value.processed_at === 'number'
+  );
+}
 
 /**
  * SQLite database provider using Node.js built-in DatabaseSync
@@ -90,7 +173,7 @@ export class SQLiteProvider implements DatabaseProvider<Database> {
    */
   async initializeSQLite(): Promise<void> {
     try {
-      await promisify(mkdir)('./databases', { recursive: true });
+      await fs.mkdir('./databases', { recursive: true });
     } catch (err) {
       if ((err as NodeJS.ErrnoException).code !== 'EEXIST') {
         console.error("Failed to create databases directory:", err);
@@ -199,14 +282,15 @@ export class SQLiteProvider implements DatabaseProvider<Database> {
     }
 
     // node:sqlite returns undefined for a miss; normalize to the declared null
-    const result = (db.prepare(sql).get(...params) as unknown as UserRow | undefined) ?? null;
+    const row = db.prepare(sql).get(...params);
+    const result = isUserRow(row) ? row : null;
     if (result) {
       // Transform subscription fields
       if (result.subscription_stripeID) {
         result.subscription = {
           stripeID: result.subscription_stripeID,
-          expires: result.subscription_expires!,
-          status: result.subscription_status!
+          expires: result.subscription_expires ?? null,
+          status: result.subscription_status ?? ''
         };
         delete result.subscription_stripeID;
         delete result.subscription_expires;
@@ -260,6 +344,7 @@ export class SQLiteProvider implements DatabaseProvider<Database> {
    */
   async updateUser(db: Database, query: UserQuery, update: UserUpdate): Promise<UpdateResult> {
     const { _id } = query;
+    if (!_id) throw new Error('updateUser requires _id');
     const ALLOWED_FIELDS = ['name', 'email', 'created_at', 'subscription_stripeID', 'subscription_expires', 'subscription_status', 'usage_count', 'usage_reset_at'];
 
     // Handle $inc operator for atomic increments
@@ -271,7 +356,7 @@ export class SQLiteProvider implements DatabaseProvider<Database> {
       const column = columnMap[incField] || incField;
       if (!ALLOWED_FIELDS.includes(column)) return { modifiedCount: 0 };
       const sql = `UPDATE Users SET ${column} = COALESCE(${column}, 0) + ? WHERE _id = ?`;
-      const result = db.prepare(sql).run(incValue, _id!);
+      const result = db.prepare(sql).run(incValue, _id);
       return { modifiedCount: result.changes as number };
     }
 
@@ -285,7 +370,7 @@ export class SQLiteProvider implements DatabaseProvider<Database> {
         subscription_expires = ?,
         subscription_status = ?
         WHERE _id = ?`;
-      const result = db.prepare(sql).run(stripeID, expires, status, _id!);
+      const result = db.prepare(sql).run(stripeID, expires, status, _id);
       return { modifiedCount: result.changes as number };
     } else if (updateData.usage) {
       const { count, reset_at } = updateData.usage;
@@ -293,7 +378,7 @@ export class SQLiteProvider implements DatabaseProvider<Database> {
         usage_count = ?,
         usage_reset_at = ?
         WHERE _id = ?`;
-      const result = db.prepare(sql).run(count, reset_at, _id!);
+      const result = db.prepare(sql).run(count, reset_at, _id);
       return { modifiedCount: result.changes as number };
     } else {
       // Handle other updates with field validation
@@ -302,7 +387,7 @@ export class SQLiteProvider implements DatabaseProvider<Database> {
 
       const setClause = fields.map(field => `${field} = ?`).join(', ');
       const values = fields.map(field => updateData[field]) as SqlParam[];
-      values.push(_id!);
+      values.push(_id);
 
       const sql = `UPDATE Users SET ${setClause} WHERE _id = ?`;
       const result = db.prepare(sql).run(...values);
@@ -350,7 +435,8 @@ export class SQLiteProvider implements DatabaseProvider<Database> {
     const { email } = query;
     const sql = "SELECT * FROM Auths WHERE email = ?";
     // node:sqlite returns undefined for a miss; normalize to the declared null
-    return (db.prepare(sql).get(email) as unknown as AuthRecord | undefined) ?? null;
+    const row = db.prepare(sql).get(email);
+    return isAuthRecord(row) ? row : null;
   }
 
   /**
@@ -395,7 +481,8 @@ export class SQLiteProvider implements DatabaseProvider<Database> {
   async findWebhookEvent(db: Database, eventId: string): Promise<WebhookEventRecord | null> {
     const sql = "SELECT * FROM WebhookEvents WHERE event_id = ?";
     // node:sqlite returns undefined for a miss; normalize to the declared null
-    return (db.prepare(sql).get(eventId) as unknown as WebhookEventRecord | undefined) ?? null;
+    const row = db.prepare(sql).get(eventId);
+    return isWebhookEventRecord(row) ? row : null;
   }
 
   /**
@@ -480,11 +567,14 @@ export class SQLiteProvider implements DatabaseProvider<Database> {
         };
       }
     } catch (error) {
-      const err = error as Error & { code?: string | number };
+      const err = error instanceof Error ? error : new Error(String(error));
+      const code = isRecord(error) && (typeof error.code === 'string' || typeof error.code === 'number')
+        ? error.code
+        : undefined;
       return {
         success: false,
         error: err.message,
-        code: err.code,
+        code,
         metadata: {
           executionTime: Date.now() - startTime,
           dbType: 'sqlite'
