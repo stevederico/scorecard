@@ -24,6 +24,7 @@ backend/.env
 .agent-browser/
 .playwright-mcp/
 deno.lock
+bun.lock
 
 # Editor directories and files
 .vscode/*

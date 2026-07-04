@@ -40,9 +40,10 @@
  */
 
 import { execSync } from 'node:child_process';
-import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync, chmodSync, readdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync, chmodSync, readdirSync, lstatSync, readlinkSync, symlinkSync, unlinkSync, realpathSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { tmpdir } from 'node:os';
+import { fileURLToPath } from 'node:url';
 import { createInterface } from 'node:readline/promises';
 
 const APP_ROOT = process.cwd();
@@ -55,10 +56,26 @@ const BRANCH = process.env.SKATEBOARD_BRANCH || '';
 const ALLOWLIST = [
   'backend/server.ts',
   'backend/server.test.ts',
+  'backend/server.lifecycle.test.js',
+  'backend/server.prod-import.test.js',
   'backend/adapters/manager.ts',
+  'backend/adapters/manager.test.js',
   'backend/adapters/sqlite.ts',
+  'backend/adapters/sqlite.test.js',
   'backend/adapters/postgres.ts',
+  'backend/adapters/postgres.test.js',
   'backend/adapters/mongodb.ts',
+  'backend/adapters/mongodb.test.js',
+  'backend/lib/auth.ts',
+  'backend/lib/auth.test.js',
+  'backend/lib/env.ts',
+  'backend/lib/env.test.js',
+  'backend/lib/logger.ts',
+  'backend/lib/logger.test.js',
+  'backend/lib/store.ts',
+  'backend/lib/store.test.js',
+  'backend/lib/validation.ts',
+  'backend/lib/validation.test.js',
   'backend/types.ts',
   'backend/tsconfig.json',
   'backend/vendor/legacy-bcrypt.js',
@@ -66,13 +83,27 @@ const ALLOWLIST = [
   'backend/package.json',
   'tsconfig.json',
   'vite.config.ts',
-  'CLAUDE.md',
+  'vite.plugins.ts',
+  'vite.plugins.test.js',
+  'src/test/setup.js',
+  'AGENTS.md',
   'Dockerfile',
   '.dockerignore',
   '.gitignore',
   '.githooks/pre-commit',
-  'scripts/update-skateboard.js'
+  'scripts/update-skateboard.js',
+  'scripts/update-skateboard.test.js',
+  'scripts/verify-ui-version.mjs',
+  'scripts/verify-ui-version.ts',
+  'scripts/verify-ui-version.test.js'
 ];
+
+// Template-owned symlinks: link path → target path (both relative to app root).
+// CLAUDE.md is a symlink to AGENTS.md (the open-standard source of truth). It is NOT
+// on the ALLOWLIST because `git show HEAD:CLAUDE.md` serves the symlink's TARGET STRING
+// ("AGENTS.md"), not file content — syncing it as a regular file would overwrite the
+// app's CLAUDE.md with the 9-byte string "AGENTS.md". ensureSymlink recreates the link.
+const SYMLINKS = { 'CLAUDE.md': 'AGENTS.md' };
 
 // Files the template deleted that apps should drop too. A stale copy is harmful
 // (ambient declarations shadow the real types: backend/ambient.d.ts hid pg/mongodb
@@ -91,7 +122,11 @@ const RENAMES = {
   'backend/adapters/sqlite.ts': 'backend/adapters/sqlite.js',
   'backend/adapters/postgres.ts': 'backend/adapters/postgres.js',
   'backend/adapters/mongodb.ts': 'backend/adapters/mongodb.js',
-  'vite.config.ts': 'vite.config.js'
+  'vite.config.ts': 'vite.config.js',
+  // The instruction file flipped from CLAUDE.md (real file) to AGENTS.md (real file)
+  // + CLAUDE.md symlink. An app whose CLAUDE.md is still a regular file gets its edits
+  // 3-way merged into AGENTS.md; SYMLINKS then recreates CLAUDE.md as the symlink.
+  'AGENTS.md': 'CLAUDE.md'
 };
 
 const SKIP_NOTE = `
@@ -217,6 +252,43 @@ function threeWayMerge(appContent, baseContent, newContent) {
 }
 
 /**
+ * Scan 3-way-merge output for defects that compile clean and ship silently:
+ *   1. Residual conflict markers INSIDE block comments — `tsc` ignores `<<<<<<<`
+ *      in a `/** ... *␐/` so `npm run typecheck` passes with the markers still there.
+ *   2. Duplicate top-level declarations — when a function/const is absent from the
+ *      (too-old) baseline but added on BOTH sides at different positions, the merge
+ *      keeps both copies with NO conflict marker (later caught only as TS2393).
+ * Returns an array of human-readable issue strings (empty = clean). Duplicate
+ * detection runs only on JS/TS sources; marker detection on any text file.
+ *
+ * @param {string} content merged file content
+ * @param {string} relPath path (selects whether duplicate detection applies)
+ * @returns {string[]}
+ */
+function findMergeDefects(content, relPath) {
+  const issues = [];
+  const lines = content.split('\n');
+  lines.forEach((line, i) => {
+    if (/^(<<<<<<<|=======|>>>>>>>)( |\t|$)/.test(line)) {
+      issues.push(`conflict marker at line ${i + 1}: ${line.slice(0, 40)}`);
+    }
+  });
+  if (/\.(ts|tsx|mts|cts|js|jsx|mjs|cjs)$/.test(relPath)) {
+    const counts = {};
+    const decl = /^\s*(?:export\s+)?(?:default\s+)?(?:async\s+)?function\s+(\w+)\s*[(<]|^\s*(?:export\s+)?const\s+(\w+)\s*=\s*(?:async\s*)?(?:function\b|\([^)]*\)\s*(?::[^=]+)?=>|<)/;
+    for (const line of lines) {
+      const m = line.match(decl);
+      const name = m && (m[1] || m[2]);
+      if (name) counts[name] = (counts[name] || 0) + 1;
+    }
+    for (const [name, n] of Object.entries(counts)) {
+      if (n > 1) issues.push(`duplicate top-level declaration "${name}" (${n}×) — likely TS2393`);
+    }
+  }
+  return issues;
+}
+
+/**
  * Sync one template file into the app (3-way merge, add, or overwrite fallback).
  *
  * @returns {Promise<'ok'|'wrote'|'declined'|'conflicts'|'error'>} 'ok' = nothing to do,
@@ -295,14 +367,19 @@ async function syncFile(relPath, baselineTag) {
     return 'ok';
   }
 
-  console.log(`\n[merge] ${relPath}${conflicts ? ` — ${conflicts} CONFLICT(S)` : ''}`);
+  // A clean (conflicts === 0) merge can still ship a duplicate declaration with no
+  // marker, so always scan the output — not just when git reported a conflict.
+  const defects = findMergeDefects(merged, relPath);
+
+  console.log(`\n[merge] ${relPath}${conflicts ? ` — ${conflicts} CONFLICT(S)` : ''}${defects.length ? ` — ${defects.length} DEFECT(S)` : ''}`);
   showDiff(appContent, merged, relPath);
 
-  if (conflicts) {
-    console.log(`  ⚠ ${conflicts} conflict(s): merged file will contain <<<<<<< markers to resolve by hand.`);
-    if (await confirm(`Write ${relPath} with conflict markers?`)) {
+  if (conflicts || defects.length) {
+    if (conflicts) console.log(`  ⚠ ${conflicts} conflict(s): merged file will contain <<<<<<< markers to resolve by hand.`);
+    for (const d of defects) console.log(`  ⚠ ${d}`);
+    if (await confirm(`Write ${relPath} anyway? (needs manual cleanup before it builds)`)) {
       writeSynced(dst, relPath, merged);
-      console.log(`[wrote w/ conflicts] ${relPath}`);
+      console.log(`[wrote w/ issues] ${relPath}`);
       return 'conflicts';
     }
     console.log(`[kept]  ${relPath}`);
@@ -354,23 +431,82 @@ async function migrateRenamedFile(relPath, oldRel, baselineTag, newContent) {
     return 'error';
   }
 
-  console.log(`\n[rename] ${oldRel} → ${relPath}${conflicts ? ` — ${conflicts} CONFLICT(S)` : ''}`);
+  const defects = findMergeDefects(merged, relPath);
+  const hasIssues = conflicts > 0 || defects.length > 0;
+
+  console.log(`\n[rename] ${oldRel} → ${relPath}${conflicts ? ` — ${conflicts} CONFLICT(S)` : ''}${defects.length ? ` — ${defects.length} DEFECT(S)` : ''}`);
   showDiff(appContent, merged, relPath);
 
-  if (conflicts) {
-    console.log(`  ⚠ ${conflicts} conflict(s): merged file will contain <<<<<<< markers to resolve by hand.`);
-  }
-  const prompt = conflicts
-    ? `Write ${relPath} with conflict markers and remove ${oldRel}?`
+  if (conflicts) console.log(`  ⚠ ${conflicts} conflict(s): merged file will contain <<<<<<< markers to resolve by hand.`);
+  for (const d of defects) console.log(`  ⚠ ${d}`);
+  const prompt = hasIssues
+    ? `Write ${relPath} anyway (needs manual cleanup) and remove ${oldRel}?`
     : `Migrate ${oldRel} to ${relPath}? (your edits preserved)`;
   if (await confirm(prompt)) {
     writeSynced(dst, relPath, merged);
     rmSync(oldDst, { force: true });
-    console.log(`[wrote] ${relPath}   [removed] ${oldRel}`);
-    return conflicts ? 'conflicts' : 'wrote';
+    console.log(`[wrote${hasIssues ? ' w/ issues' : ''}] ${relPath}   [removed] ${oldRel}`);
+    return hasIssues ? 'conflicts' : 'wrote';
   }
   console.log(`[kept]  ${oldRel}`);
   return 'declined';
+}
+
+/**
+ * Ensure `linkRel` is a symlink pointing at `targetRel` (both relative to the app root).
+ *
+ * Recreates the template's `CLAUDE.md → AGENTS.md` symlink. Unlike ALLOWLIST files this
+ * is NOT copied via `git show` (which would yield the 9-byte target string, not content)
+ * — it is materialized with `symlinkSync` so the app gets a real symlink.
+ *
+ * - link absent            → create it
+ * - link already correct   → no-op
+ * - link wrong target      → retarget
+ * - link is a regular file → offer to replace (legacy real CLAUDE.md; its content should
+ *                            already have migrated into AGENTS.md via RENAMES)
+ * - target missing         → skip (nothing to point at)
+ *
+ * @returns {Promise<'ok'|'wrote'|'declined'|'error'>}
+ */
+async function ensureSymlink(linkRel, targetRel, { root = APP_ROOT, confirmFn = confirm } = {}) {
+  const linkPath = join(root, linkRel);
+  if (!existsSync(join(root, targetRel))) {
+    console.log(`[skip] ${linkRel} symlink — target ${targetRel} not present`);
+    return 'ok';
+  }
+  let stat = null;
+  try { stat = lstatSync(linkPath); } catch { /* absent */ }
+
+  if (stat?.isSymbolicLink()) {
+    if (readlinkSync(linkPath) === targetRel) {
+      console.log(`[ok]   ${linkRel} → ${targetRel}`);
+      return 'ok';
+    }
+    unlinkSync(linkPath);
+    symlinkSync(targetRel, linkPath);
+    console.log(`[wrote] ${linkRel} → ${targetRel} (retargeted)`);
+    return 'wrote';
+  }
+
+  if (stat) {
+    if (stat.isDirectory()) {
+      console.log(`[error] ${linkRel} is a directory — cannot convert to a symlink; resolve by hand`);
+      return 'error';
+    }
+    console.log(`\n[symlink] ${linkRel} is a regular file; the template now ships it as a symlink → ${targetRel}`);
+    if (await confirmFn(`Replace ${linkRel} with a symlink → ${targetRel}? (its content should already be in ${targetRel})`)) {
+      unlinkSync(linkPath);
+      symlinkSync(targetRel, linkPath);
+      console.log(`[wrote] ${linkRel} → ${targetRel}`);
+      return 'wrote';
+    }
+    console.log(`[kept]  ${linkRel}`);
+    return 'declined';
+  }
+
+  symlinkSync(targetRel, linkPath);
+  console.log(`[wrote] ${linkRel} → ${targetRel} (new symlink)`);
+  return 'wrote';
 }
 
 /**
@@ -542,12 +678,24 @@ async function main() {
     }
   }
 
+  // Recreate template-owned symlinks (CLAUDE.md → AGENTS.md). Runs after the ALLOWLIST
+  // loop so AGENTS.md exists and any legacy real CLAUDE.md has already migrated via RENAMES.
+  for (const [linkRel, targetRel] of Object.entries(SYMLINKS)) {
+    statuses.push(await ensureSymlink(linkRel, targetRel));
+  }
+
   // Any declined/conflicted/errored file means the upgrade is incomplete — don't stamp
   // skateboardVersion (the dep/script merges are still offered above).
   const blocked = statuses.filter(s => s === 'declined' || s === 'conflicts' || s === 'error').length;
   await mergePackageJson(baselineTag, blocked === 0);
   if (blocked) {
-    console.log(`\n⚠ ${blocked} file(s) declined/conflicted — skateboardVersion left at ${currentVersion} so a re-run can finish the job; re-run with --baseline ${currentVersion} after resolving.`);
+    console.log(`\n⚠ ${blocked} file(s) declined/conflicted or carry merge defects (conflict markers / duplicate declarations).`);
+    console.log(`  skateboardVersion left at ${currentVersion}. Resolve the flagged files, then re-run with --baseline ${currentVersion}.`);
+    console.log(`  NOTE: markers inside JSDoc and duplicate functions COMPILE CLEAN — do not trust 'npm run typecheck' alone;`);
+    console.log(`  confirm with: git grep -nE '^(<<<<<<<|=======|>>>>>>>)' -- '*.ts' '*.tsx'`);
+    // Non-zero exit so CI / automation that runs this with --yes does not mistake a
+    // marker-laden or duplicate-ridden result for success.
+    process.exitCode = 1;
   }
 
   rmSync(TMP_DIR, { recursive: true, force: true });
@@ -571,4 +719,12 @@ async function main() {
   }
 }
 
-main().catch(e => { console.error(e); process.exit(1); });
+/** True when this file is the process entry point (not imported by a test). */
+const isMain = (() => {
+  try { return !!process.argv[1] && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url); }
+  catch { return false; }
+})();
+
+if (isMain) main().catch(e => { console.error(e); process.exit(1); });
+
+export { ALLOWLIST, REMOVED, RENAMES, SYMLINKS, ensureSymlink, findMergeDefects, threeWayMerge };
