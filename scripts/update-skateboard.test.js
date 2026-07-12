@@ -18,7 +18,7 @@ function walkRepo(dir, out = []) {
 }
 
 // Regression guard for the 4.5.0 omission: the updater REFERENCED new boilerplate
-// (backend/lib/*, vite.plugins.ts, src/test/setup.js) but they were absent from the
+// (backend/lib/*, vite.plugins.ts, src/test/setup.ts) but they were absent from the
 // ALLOWLIST, so `node scripts/update-skateboard.js` left apps with a broken build —
 // imports resolved to nothing. The invariant below makes a new backend file fail CI
 // unless it is allowlisted (or explicitly runtime/vendor).
@@ -45,7 +45,7 @@ describe('ALLOWLIST completeness', { skip: !IS_TEMPLATE }, () => {
   });
 
   it('allowlists the build/test infra new in 4.5.0', () => {
-    for (const f of ['vite.plugins.ts', 'src/test/setup.js']) {
+    for (const f of ['vite.plugins.ts', 'src/test/setup.ts']) {
       assert.ok(ALLOWLIST.includes(f), `${f} must be synced or apps fail to build/test`);
     }
   });

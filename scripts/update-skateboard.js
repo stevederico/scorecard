@@ -85,7 +85,7 @@ const ALLOWLIST = [
   'vite.config.ts',
   'vite.plugins.ts',
   'vite.plugins.test.js',
-  'src/test/setup.js',
+  'src/test/setup.ts',
   'AGENTS.md',
   'Dockerfile',
   '.dockerignore',
