@@ -20,6 +20,7 @@ interface Player {
 
 /** The four bases a runner can occupy/score. */
 type Base = 'first' | 'second' | 'third' | 'home';
+const BASES: Base[] = ['first', 'second', 'third', 'home'];
 
 /** A single at-bat cell: result notation plus base advancement and out count. */
 interface AtBat {
@@ -425,7 +426,7 @@ export default function BaseballView() {
                   />
                   <div className="flex items-center gap-2 pt-2 border-t">
                     <span className="text-sm text-muted-foreground">Bases:</span>
-                    {(['first', 'second', 'third', 'home'] as Base[]).map((base, i) => (
+                    {BASES.map((base, i) => (
                       <Button
                         key={base}
                         variant={mobileAb[base] ? 'default' : 'outline'}
@@ -696,7 +697,7 @@ export default function BaseballView() {
                                   </div>
                                   <div className="flex gap-2 pt-2 border-t">
                                     <p className="text-xs text-muted-foreground">Bases:</p>
-                                    {(['first', 'second', 'third', 'home'] as Base[]).map((base, i) => (
+                                    {BASES.map((base, i) => (
                                       <Button
                                         key={base}
                                         variant={ab[base] ? 'default' : 'outline'}
