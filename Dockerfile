@@ -11,6 +11,12 @@ RUN npm install && cd backend && npm install
 
 COPY . .
 
+# Vite bakes VITE_* env at build time; Railway build vars must be declared as ARG to reach the build.
+ARG VITE_DOTTIE_ID
+ARG VITE_DOTTIE_SRC
+ENV VITE_DOTTIE_ID=$VITE_DOTTIE_ID
+ENV VITE_DOTTIE_SRC=$VITE_DOTTIE_SRC
+
 RUN npm run build
 
 FROM node:24-alpine

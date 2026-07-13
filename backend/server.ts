@@ -593,11 +593,11 @@ export function __testBuildSecureHeadersOptions(prod: boolean = isProd()) {
   return {
     contentSecurityPolicy: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://api.dottie.ai"],
       styleSrc: ["'self'", "'unsafe-inline'"],
       imgSrc: ["'self'", "https:"],
       fontSrc: ["'self'"],
-      connectSrc: ["'self'"],
+      connectSrc: ["'self'", "https://api.dottie.ai"],
       frameAncestors: ["'none'"]
     },
     strictTransportSecurity: !prod ? false as const : 'max-age=31536000; includeSubDomains; preload',
