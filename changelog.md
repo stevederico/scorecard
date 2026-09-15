@@ -1,5 +1,13 @@
 ## CHANGELOG
 
+5.6.0
+
+  Upgrade skateboard 5.6.0
+  Catch worker panics
+  Cap request wall clock
+  Bound Stripe job queue
+  Allowlist checkout keys
+
 5.4.0
 
   Migrate skateboard 5.4.0

@@ -105,6 +105,7 @@ fn stripe_err(state: &AppState, log_msg: &str, e: crate::stripe::StripeError) ->
         .error(log_msg, &[("error", json::s(e.to_string()))]);
     match e {
         crate::stripe::StripeError::Timeout => err_json(504, "Payment provider timed out"),
+        crate::stripe::StripeError::Busy => err_json(503, "Payment provider busy"),
         _ if log_msg.starts_with("Portal") => err_json(500, "Stripe portal failed"),
         _ if log_msg.starts_with("Checkout") => err_json(500, "Stripe session failed"),
         _ => err_json(500, "Stripe request failed"),
@@ -779,6 +780,13 @@ fn checkout(state: &AppState, req: &Request) -> Response {
     let (Some(email), Some(lookup_key)) = (body.get_str("email"), body.get_str("lookup_key")) else {
         return err_json(400, "Missing email or lookup_key");
     };
+    if !state
+        .stripe_lookup_keys
+        .iter()
+        .any(|allowed| allowed == lookup_key)
+    {
+        return err_json(400, "Unknown lookup_key");
+    };
     let user = match state.pool.find_user(&UserQuery::Id(user_id)) {
         Ok(u) => u,
         Err(e) => {
@@ -1302,15 +1310,31 @@ pub fn run_lockout_cleanup(state: &AppState) {
 
 /// Client IP used for auth rate limiting and lockout keys.
 ///
-/// Transport `peer_ip` by default. When `TRUST_PROXY=1`, the first
-/// `X-Forwarded-For` hop is used so a reverse proxy's client address is seen
-/// instead of the proxy itself — only enable this behind a trusted proxy.
+/// Transport `peer_ip` by default. `TRUST_PROXY` is the number of reverse
+/// proxies in front of this process (`TRUST_PROXY=1` for a single proxy such as
+/// Railway); set it only when every one of those hops is trusted.
+///
+/// Proxies **append** to `X-Forwarded-For`, so the leftmost entry is whatever
+/// the client sent and must never be trusted — rotating it would mint a fresh
+/// rate-limit and lockout bucket per request. Index `hops` from the right
+/// instead: with one trusted proxy that is the address it observed.
+///
+/// Falls back to `peer_ip` when the header is absent or carries fewer entries
+/// than `hops` (a spoofed-short chain then shares the proxy's bucket rather
+/// than escaping into one of its own).
 fn client_ip(req: &Request) -> String {
-    if config::env("TRUST_PROXY").as_deref() == Some("1") {
+    let hops = config::env("TRUST_PROXY")
+        .and_then(|v| v.trim().parse::<usize>().ok())
+        .unwrap_or(0);
+    if hops > 0 {
         if let Some(xff) = req.header("x-forwarded-for") {
-            let first = xff.split(',').next().unwrap_or("").trim();
-            if !first.is_empty() {
-                return first.to_string();
+            let chain: Vec<&str> = xff
+                .split(',')
+                .map(|s| s.trim())
+                .filter(|s| !s.is_empty())
+                .collect();
+            if let Some(ip) = chain.len().checked_sub(hops).and_then(|i| chain.get(i)) {
+                return (*ip).to_string();
             }
         }
     }
@@ -1727,6 +1751,62 @@ mod tests {
     }
 
     #[test]
+    fn spoofed_leading_forwarded_for_cannot_mint_a_fresh_rate_limit_bucket() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        // SAFETY: ENV_LOCK is held for the whole test so TRUST_PROXY cannot race.
+        unsafe {
+            std::env::set_var("TRUST_PROXY", "1");
+        }
+        let (state, dir) = test_state_locked();
+        let now = config::now_ms();
+        // Exhaust the window for the address the single trusted proxy observed.
+        for _ in 0..crate::stores::AUTH_RATE_LIMIT {
+            assert!(!state.auth_rate.check_and_record("198.51.100.10", now).limited);
+        }
+        // The client prepends junk; the proxy appends the address it saw. Taking
+        // the leftmost hop would hand the attacker an unused bucket every time.
+        for (i, spoof) in ["203.0.113.1", "203.0.113.2", "203.0.113.3"].iter().enumerate() {
+            let mut req = Request::for_test("POST", "/api/signup");
+            req.peer_ip = "10.0.0.1".into();
+            req.set_test_header("x-forwarded-for", &format!("{spoof}, 198.51.100.10"));
+            req.set_test_body(
+                format!(r#"{{"email":"spoof{i}@example.com","password":"secret1","name":"R"}}"#)
+                    .into_bytes(),
+            );
+            assert_eq!(handle(&state, req).status, 429, "spoofed hop {spoof} escaped the limit");
+        }
+        unsafe {
+            std::env::remove_var("TRUST_PROXY");
+        }
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn forwarded_for_shorter_than_trusted_hops_falls_back_to_peer_ip() {
+        let _guard = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+        // SAFETY: ENV_LOCK is held for the whole test so TRUST_PROXY cannot race.
+        unsafe {
+            std::env::set_var("TRUST_PROXY", "2");
+        }
+        let (state, dir) = test_state_locked();
+        let now = config::now_ms();
+        // Only one hop present but two are configured: fail closed to the socket
+        // peer rather than trusting the client-supplied entry.
+        for _ in 0..crate::stores::AUTH_RATE_LIMIT {
+            assert!(!state.auth_rate.check_and_record("10.0.0.1", now).limited);
+        }
+        let mut req = Request::for_test("POST", "/api/signup");
+        req.peer_ip = "10.0.0.1".into();
+        req.set_test_header("x-forwarded-for", "203.0.113.9");
+        req.set_test_body(br#"{"email":"short-chain@example.com","password":"secret1","name":"R"}"#.to_vec());
+        assert_eq!(handle(&state, req).status, 429);
+        unsafe {
+            std::env::remove_var("TRUST_PROXY");
+        }
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
     fn put_me_rejects_malformed_json_as_bad_request() {
         let (state, dir) = test_state();
         let signed = signed_up(&state, "badjson@example.com");
@@ -1771,9 +1851,15 @@ mod tests {
 
     fn stripe_state_with_mock(mock: crate::stripe::StripeMock) -> (AppState, std::path::PathBuf) {
         let (mut state, dir) = test_state();
+        let keys: Vec<String> = mock.prices.keys().cloned().collect();
         state.stripe = Some(crate::stripe_worker::StripeWorker::spawn(
             crate::stripe::StripeClient::with_mock(mock),
         ));
+        state.stripe_lookup_keys = if keys.is_empty() {
+            vec!["pro_monthly".into()]
+        } else {
+            keys
+        };
         state.stripe_endpoint_secret = Some(WHSEC.into());
         (state, dir)
     }
@@ -2024,10 +2110,25 @@ mod tests {
         req.set_test_body(br#"{"email":"pay2@example.com","lookup_key":"missing"}"#.to_vec());
         let res = handle(&state, req);
         assert_eq!(res.status, 400);
-        assert!(json_body(&res)
-            .get_str("error")
-            .unwrap_or("")
-            .contains("No price found"));
+        assert_eq!(json_body(&res).get_str("error"), Some("Unknown lookup_key"));
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn checkout_rejects_unlisted_lookup_key_even_when_stripe_has_it() {
+        let mut mock = crate::stripe::StripeMock::default();
+        mock.prices.insert("internal_price".into(), "price_secret".into());
+        let (mut state, dir) = stripe_state_with_mock(mock);
+        state.stripe_lookup_keys = vec!["pro_monthly".into()];
+        let signup = signed_up(&state, "pay3@example.com");
+        let mut req = Request::for_test("POST", "/api/checkout");
+        replay_cookies(&mut req, &[&signup], true);
+        req.set_test_body(
+            br#"{"email":"pay3@example.com","lookup_key":"internal_price"}"#.to_vec(),
+        );
+        let res = handle(&state, req);
+        assert_eq!(res.status, 400);
+        assert_eq!(json_body(&res).get_str("error"), Some("Unknown lookup_key"));
         std::fs::remove_dir_all(&dir).ok();
     }
 
