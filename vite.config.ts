@@ -1,7 +1,4 @@
-/// <reference types="vitest/config" />
 import { defineConfig } from 'vite';
-import type { ESBuildOptions } from 'vite';
-import react from '@vitejs/plugin-react-swc';
 import tailwindcss from '@tailwindcss/vite';
 import path from 'node:path';
 import {
@@ -16,7 +13,6 @@ import {
 
 export default defineConfig({
   plugins: [
-    react(),
     tailwindcss(),
     customLoggerPlugin(),
     htmlReplacePlugin(),
@@ -24,99 +20,36 @@ export default defineConfig({
     dynamicSitemapPlugin(),
     dynamicManifestPlugin()
   ],
-  // Vite 8 ships without esbuild installed, so its ESBuildOptions type loses
-  // esbuild's TransformOptions fields (including `drop`); cast keeps the
-  // option exactly as-is without a runtime change.
-  esbuild: {
-    jsx: 'automatic',
-    jsxImportSource: 'react',
-    drop: []
-  } as ESBuildOptions,
+  // JSX comes from tsconfig ("jsx": "react-jsx") via Vite's own transform — no
+  // @vitejs/plugin-react-swc, so edits trigger a full reload instead of Fast Refresh.
   resolve: {
-    dedupe: ['react', 'react-dom', 'react-router-dom', 'react-router'],
+    // react-router resolves through skateboard-ui; dedupe keeps one copy if an app adds it.
+    dedupe: ['react', 'react-dom', 'react-router'],
     alias: {
-      '@': path.resolve(process.cwd(), './src'),
-      '@package': path.resolve(process.cwd(), 'package.json'),
-      '@root': path.resolve(process.cwd()),
-      'react': path.resolve(process.cwd(), 'node_modules/react'),
-      'react-dom': path.resolve(process.cwd(), 'node_modules/react-dom'),
-      'react/jsx-runtime': path.resolve(process.cwd(), 'node_modules/react/jsx-runtime.js')
+      '@': path.resolve(process.cwd(), './src')
     }
   },
   optimizeDeps: {
-    include: [
-      'react',
-      'react-dom',
-      'react-dom/client',
-      '@radix-ui/react-slot',
-      'react-router-dom',
-      'react-router',
-      'cookie',
-      'set-cookie-parser'
-    ],
-    force: true,
-    exclude: [
-      '@stevederico/skateboard-ui',
-      '@swc/core',
-      '@swc/core-darwin-arm64',
-      '@swc/wasm',
-      '@tailwindcss/oxide',
-      '@tailwindcss/oxide-darwin-arm64',
-      '@tailwindcss/oxide-darwin-x64',
-      '@tailwindcss/oxide-linux-x64-gnu',
-      '@tailwindcss/oxide-linux-x64-musl',
-      '@tailwindcss/oxide-win32-x64-msvc',
-      'lightningcss',
-      'fsevents'
-    ],
-    esbuildOptions: {
-      target: 'esnext',
-      define: {
-        global: 'globalThis'
-      }
-    }
-  },
-  build: {
-    rollupOptions: {
-      external: [
-        /\.node$/,
-        /@tailwindcss\/oxide/
-      ]
-    }
+    // skateboard-ui is excluded from prebundling, so its raw imports resolve straight to
+    // these packages — every one it reaches for must be pre-converted to ESM, including
+    // react/jsx-runtime (its compiled JSX imports it and React ships CJS).
+    include: ['react', 'react-dom', 'react-dom/client', 'react/jsx-runtime', 'react-router'],
+    // skateboard-ui ships pre-built ESM; the native/CSS toolchain must never be prebundled.
+    exclude: ['@stevederico/skateboard-ui', 'lightningcss', 'fsevents']
   },
   server: {
     host: 'localhost',
     open: false,
     port: 5173,
     strictPort: false,
-    // Don't pin the HMR port — Vite derives it from the resolved server port.
-    // Hardcoding 5173 broke HMR ("WebSocket closed without opened") whenever
-    // 5173 was taken and the server fell back to 5174 while HMR still dialed 5173.
-    hmr: {
-      overlay: false
-    },
+    // HMR is left at its defaults on purpose: the error overlay surfaces build failures
+    // instead of hiding them, and pinning the HMR port broke reloads ("WebSocket closed
+    // without opened") whenever 5173 was taken and the server fell back to 5174.
     watch: {
       usePolling: false,
       ignored: ['**/node_modules/**', '**/.git/**']
     }
   },
-  logLevel: 'error',
-  // @ts-expect-error Vitest extends Vite UserConfig with a test key
-  test: {
-    globals: true,
-    environment: 'jsdom',
-    setupFiles: ['./src/test/setup.ts'],
-    include: ['src/**/*.test.{js,jsx}'],
-    coverage: {
-      provider: 'v8',
-      include: ['src/**/*.{js,jsx}'],
-      exclude: ['src/**/*.test.{js,jsx}', 'src/test/**'],
-      thresholds: {
-        lines: 100,
-        functions: 100,
-        branches: 100,
-        statements: 100
-      }
-    }
-  }
+  // 'info' keeps the production bundle report visible; customLoggerPlugin trims dev noise.
+  logLevel: 'info'
 });

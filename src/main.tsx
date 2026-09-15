@@ -68,5 +68,7 @@ if (import.meta.env.VITE_DOTTIE_ID && import.meta.env.VITE_DOTTIE_SRC) {
 createSkateboardApp({
   constants,
   appRoutes,
-  defaultRoute: 'home'
+  defaultRoute: 'home',
+  // Legal bodies stay out of the main chunk; routes load src/legal.json on demand.
+  loadLegal: () => import('./legal.json'),
 });
