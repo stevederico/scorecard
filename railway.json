@@ -5,6 +5,6 @@
     "dockerfilePath": "Dockerfile"
   },
   "deploy": {
-    "sleepApplication": false
+    "sleepApplication": true
   }
 }
