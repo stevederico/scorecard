@@ -6,22 +6,23 @@ Project guidance for AI agents working with this repository.
 
 **Primary Development:**
 ```bash
-npm run start          # Start both frontend and backend concurrently
-npm run front          # Frontend only (Vite dev server on :5173)
-npm run server         # Backend only (Hono server on :8000)
+npm run start          # Frontend only (Vite on :5173)
+npm run front          # Same as start
+cd backend && cargo run   # Backend on :8000
 ```
 
 **Build Commands:**
 ```bash
-npm run build          # Development build
-npm run prod           # Production build
-npm install-all        # Install all dependencies (root + workspace)
+npm run build          # Frontend typecheck + Vite production build
+npm run prod           # Same as build
+npm install-all        # Install frontend dependencies
+cd backend && cargo build --release
 ```
 
 **Testing:**
 ```bash
-npm run test           # Run all tests (node --test, backend workspace)
-npm run test:watch     # Watch mode for development
+npm run test           # Frontend typecheck + script tests (no vitest)
+cd backend && cargo test --locked
 ```
 
 ## Code Standards
@@ -89,7 +90,7 @@ When making ANY code changes, you MUST update:
 ### TypeScript Style
 
 - TypeScript everywhere — `.ts` / `.tsx` files, `strict` mode always on
-- No build-step typechecking: `npm run typecheck` runs `tsc --noEmit` for both root and backend; it gates `build`, `prod`, and `test`
+- No build-step typechecking: `npm run typecheck` runs `tsc -p tsconfig.json` (`noEmit` is set in tsconfig) for the frontend; it gates `build`, `prod`, and `test`. Backend is `cargo test`.
 - `@types` packages are dev-only dependencies (`@types/node`, `@types/react`, `@types/react-dom`)
 - Prefer `const` over `let` — use `let` only when reassigning
 - Prefer `async`/`await` over `.then()` chains
@@ -118,7 +119,7 @@ All of these silence the compiler instead of proving correctness:
 
 - Never use dotenv — manually load `.env` file
 - Never use `require()` — ES modules only
-- Never use mongoose — use the `mongodb` npm package
+- Never add a database driver package — the backend is SQLite through system `libsqlite3` FFI
 - Never use axios, got, or similar — native `fetch` only
 - Never use PostCSS, autoprefixer, or `tailwind.config.js`
 - Never use ESLint or the `globals` package
@@ -199,8 +200,12 @@ All of these silence the compiler instead of proving correctness:
 
 ### Icons
 
-- Default icon library: Lucide React (`lucide-react`)
-- Never use emoji as UI icons — use proper icon components (exception: `constants.json` feature icons where the shell renders them as text)
+- Default library: Lucide React (`lucide-react`) — runtime dep of skateboard-ui **5.0** (hoisted); apps should declare it too
+- **Always named-import from `lucide-react`:** `import { Plus, Trash2 } from 'lucide-react'`
+- **Never** import from `@stevederico/skateboard-ui/icons` or `@stevederico/skateboard-ui/icons/*` — removed in 5.0 (was 4.18)
+- **Never** use public DynamicIcon — removed in 5.0 (was 4.17); shell-only `constantsIcon` resolves `constants.json` icon strings
+- When migrating from 4.x: rewrite every `skateboard-ui/icons` and `DynamicIcon` import to a named `lucide-react` import (see **Migrating 4.x → 5.0**)
+- Never use emoji as UI icons — use proper icon components (exception: `constants.json` feature icons where the shell renders unknown/legacy values as text)
 - Icon-only buttons must have `aria-label`
 - Standard sizes: 16px inline, 18px buttons, 24px cards, 48px empty states
 
@@ -286,9 +291,10 @@ When a project uses `constants.json`, include a `design` block:
 
 ### Test Runner
 
-- **Node's built-in test runner** (`node --test`) is the standard — never use Jest, Mocha, or Jasmine; no test framework dependency
-- Backend tests run via the workspace: root `npm run test` typechecks, then delegates to `backend` (`node --test server.test.ts`)
-- Use `npm run test` for CI; `npm run test:watch` for development
+- **Frontend / scripts:** Node's built-in test runner (`node --test`) — never Jest, Mocha, or Jasmine
+- **Backend:** `cargo test` (`#[cfg(test)]` next to the code). Zero crate test frameworks.
+- Root `npm run test` is frontend typecheck + script tests. No vitest. Backend: `cd backend && cargo test --locked`
+- CI runs both.
 
 ### What to Test
 
@@ -379,8 +385,8 @@ Skateboard uses an **Application Shell Architecture** where skateboard-ui provid
 **Key principle:** Update skateboard-ui package once, all apps inherit improvements.
 
 ### Monorepo Structure
-- **Root**: React frontend with Vite 7.1+ build system using skateboard-ui
-- **Backend Workspace**: Hono server with multi-database support
+- **Root**: React 19 frontend on Vite 8 using skateboard-ui
+- **Backend**: zero-crate Rust (`backend/`), SQLite via system libsqlite3
 
 ### Project Structure
 ```
@@ -389,13 +395,12 @@ skateboard/
 │   ├── components/       # Your custom components (e.g., HomeView.tsx)
 │   ├── assets/
 │   │   └── styles.css   # Brand color override (7 lines)
-│   ├── main.tsx         # Route definitions (16 lines)
+│   ├── main.tsx         # Route definitions + lazy view imports
 │   └── constants.json   # All your app config
 ├── backend/
-│   ├── server.ts        # Hono server
-│   ├── adapters/        # Database adapters (SQLite, PostgreSQL, MongoDB)
+│   ├── src/             # Zero-crate Rust server
+│   ├── Cargo.toml       # Empty [dependencies]
 │   ├── databases/       # SQLite database files
-│   ├── tsconfig.json    # Backend TypeScript config
 │   └── config.json      # Backend config with database settings
 ├── package.json         # Dependencies (includes skateboard-ui)
 ├── tsconfig.json        # Frontend TypeScript config (strict)
@@ -403,37 +408,27 @@ skateboard/
 ```
 
 **What's NOT in your app (provided by skateboard-ui):**
-- `context.jsx` - Imported from skateboard-ui/Context
+- App context/state - Imported from `@stevederico/skateboard-ui/Context`
 - Complex routing setup - Uses createSkateboardApp()
 - Full theme CSS - Imports base theme from skateboard-ui
 
 **Result:** ~550 lines of boilerplate → ~26 lines
 
 ### Frontend Stack
-- React, Vite, react-router-dom (latest versions)
+- React, Vite, skateboard-ui (routing via `useSafeNavigate`)
 - TypeScript (`strict`, no-build-step typecheck), ES modules only
 - Tailwind CSS v4+ with @tailwindcss/vite plugin
 
 ### Backend Stack
-- Runtime: Node.js with Hono
-- Database: SQLite preferred, MongoDB if SQLite not available
-- Always use the `mongodb` npm package (never mongoose)
-- HTTP client: native `fetch` only
-
-### Multi-Database Architecture
-
-The application uses a database factory pattern supporting three database types:
-
-**Database Adapters** (`backend/adapters/`):
-- `sqlite.ts` - Default SQLite provider using Node.js built-in DatabaseSync
-- `postgres.ts` - PostgreSQL provider with connection pooling
-- `mongodb.ts` - MongoDB provider with native driver
-- `manager.ts` - Unified interface and provider selection
+- Runtime: zero-crate Rust (`std::net::TcpListener` + OS threads). Empty `[dependencies]`.
+- SQLite via system `libsqlite3` FFI. Postgres and Mongo are not supported.
+- Stripe HTTPS via system `libcurl` FFI. Never hand-roll TLS. Never add a crate.
+- A crate needs an explicit yes. Do not `cargo add`.
 
 **Configuration** (`backend/config.json`):
 ```json
 {
-  "client": "http://localhost:5173",
+  "staticDir": "../dist",
   "database": {
     "db": "MyApp",
     "dbType": "sqlite",
@@ -443,17 +438,20 @@ The application uses a database factory pattern supporting three database types:
 ```
 
 ### Authentication & Security
-- JWT tokens in HttpOnly cookies
+- JWT tokens in HttpOnly cookies (HS256, byte-compatible with the old Node tokens)
 - CSRF token protection for state-changing operations
-- Scrypt password hashing via `node:crypto` (legacy bcrypt hashes verified and lazily rehashed on signin)
+- Scrypt password hashing (legacy bcrypt hashes verified and lazily rehashed on signin)
 - JWT with 30-day expiration
-- Rate limiting on auth, payments, and global endpoints
 - Security headers (CSP, HSTS, X-Frame-Options, etc.)
 
 ### Build System Integration
 
 **Vite Configuration** (v1.1+ app-owned):
 Apps own their `vite.config.ts` directly. See [reference implementation](https://github.com/stevederico/skateboard/blob/master/vite.config.ts).
+
+- JSX via Vite's built-in esbuild (`jsx: 'automatic'`) — no `@vitejs/plugin-react-swc`
+- Do **not** pass `vite --force` or set `optimizeDeps.force: true` in normal dev (causes full dep re-bundle every start)
+- Dev edits full-reload the page (no React Fast Refresh plugin)
 
 **Styling:**
 ```css
@@ -473,8 +471,10 @@ Apps own their `vite.config.ts` directly. See [reference implementation](https:/
 
 **Import path:** `@stevederico/skateboard-ui/shadcn/ui/<component>`
 
+(From skateboard-ui **5.0**, that path is a package `exports` remap onto `ui/` — there are no linker shim files. Same import string for apps.)
+
 **Available components:**
-`accordion`, `alert`, `alert-dialog`, `aspect-ratio`, `avatar`, `badge`, `breadcrumb`, `button`, `button-group`, `calendar`, `card`, `carousel`, `chart`, `checkbox`, `collapsible`, `command`, `context-menu`, `dialog`, `drawer`, `dropdown-menu`, `empty`, `field`, `hover-card`, `input`, `input-group`, `item`, `kbd`, `label`, `menubar`, `navigation-menu`, `pagination`, `popover`, `progress`, `radio-group`, `resizable`, `scroll-area`, `select`, `separator`, `sheet`, `sidebar`, `skeleton`, `slider`, `sonner`, `spinner`, `switch`, `table`, `tabs`, `textarea`, `toggle`, `toggle-group`, `tooltip`
+`accordion`, `alert`, `alert-dialog`, `avatar`, `badge`, `button`, `calendar`, `card`, `checkbox`, `collapsible`, `command`, `dialog`, `drawer`, `dropdown-menu`, `empty`, `field`, `input`, `kbd`, `label`, `pagination`, `popover`, `progress`, `radio-group`, `scroll-area`, `select`, `separator`, `sheet`, `sidebar`, `skeleton`, `slider`, `spinner`, `switch`, `table`, `tabs`, `textarea`, `toggle`, `toggle-group`, `tooltip`
 
 **Rules:**
 - Prefer shadcn components over custom HTML elements (e.g., use `<Button>` not `<button>`, `<Card>` not `<div className="card">`)
@@ -605,7 +605,11 @@ Backend requires `.env` file with:
 - `CORS_ORIGINS` - Comma-separated allowed origins (production)
 - `FRONTEND_URL` - Frontend URL for Stripe redirects (production)
 - `FREE_USAGE_LIMIT` - Usage limit for free users (default: 20)
-- `MONGODB_URL`, `POSTGRES_URL`, `DATABASE_URL` - Database connections (production)
+- `NODE_ENV` - `production` enables HSTS, skips `.env` loading, and requires a 32+ character `JWT_SECRET`
+- `PORT` - Listen port (default: 8000)
+
+Database connection is SQLite only and lives in `backend/config.json` — there are no
+`DATABASE_URL`, `MONGODB_URL`, or `POSTGRES_URL` variables.
 
 ## Reference Documentation
 
@@ -615,16 +619,117 @@ When working with these libraries, consult the provided documentation before mak
 |---|---|
 | shadcn/ui | https://ui.shadcn.com/llms.txt |
 | Vite | https://vite.dev/llms.txt |
-| Hono | https://hono.dev/llms.txt |
+| Rust std | https://doc.rust-lang.org/std/ |
 | Tailwind CSS v4 | https://raw.githubusercontent.com/tailwindlabs/tailwindcss.com/refs/heads/md-endpoints/llms.txt |
+
+## Agent skill (required reading)
+
+This repo ships **`skills/skateboard/SKILL.md`** — the Cursor/Claude skill for building and upgrading skateboard apps.
+
+**When to use it:** scaffolding, editing views/`constants.json`, choosing shadcn primitives, Rust backend auth/Stripe/SQLite, running `scripts/update-skateboard.js`, fixing template drift, or any task that mentions skateboard / skateboard-ui.
+
+**What agents must do:**
+1. Read `skills/skateboard/SKILL.md` first (and `skills/skateboard/rules/*` for icons/forms/styling/views as needed).
+2. Prefer shadcn primitives from `@stevederico/skateboard-ui/shadcn/ui/*` over raw HTML.
+3. Named-import icons from `lucide-react` only (see Icons below).
+4. Treat `skateboardVersion` as a label — verify the tree (especially `backend/`) matches the template before claiming an upgrade is done.
+5. For upgrades, follow **Migrating 4.x → 5.0** below (and `docs/UPGRADE.md`).
+
+Canonical pins live in this repo’s `package.json` (`version` / `skateboardVersion` / `@stevederico/skateboard-ui`). Refresh the skill metadata when those move.
 
 ## Documentation
 
 **Reference:** [docs/GUIDE.md](docs/GUIDE.md) - Architecture, API, Schema, Deployment, Migration (consolidated)
 
 **Version:**
-- skateboard@4.11.0
-- skateboard-ui@4.14.0
+- skateboard@5.6.0
+- skateboard-ui@5.1.0
+
+## Migrating 4.x → 5.0 (exact checklist)
+
+**5.0 is a breaking major** for both the boilerplate (`skateboard`) and the shell (`@stevederico/skateboard-ui`). Apps on any **4.x** pin must complete every step below. Do not stamp `skateboardVersion: "5.0.0"` until the checklist is green.
+
+### A. Preconditions
+
+1. Confirm the app is skateboard: `package.json` has `skateboardVersion`.
+2. Clean git tree (commit or stash). Branch: `chore/skateboard-5`.
+3. Note current versions: `skateboardVersion` and `@stevederico/skateboard-ui` in `package.json`.
+
+### B. Boilerplate / Rust backend (if still on Node/Hono or behind on Rust)
+
+4. Refresh the updater from master:
+   ```bash
+   curl -fsSL https://raw.githubusercontent.com/stevederico/skateboard/master/scripts/update-skateboard.js -o scripts/update-skateboard.js
+   ```
+5. Run: `node scripts/update-skateboard.js --yes`
+   - If it says “Already on latest” but `backend/server.ts` or `backend/package.json` still exists, re-run with `--baseline <real-prior-version>` from git history.
+6. Resolve every `<<<<<<<` conflict. Port custom Hono routes into `backend/src/routes.rs`. Schema lives in `backend/src/db.rs`.
+7. Confirm zero-crate Rust: `backend/Cargo.toml` has empty `[dependencies]`. Backend commands are `cargo run` / `cargo test --locked` — not `npm run server`.
+
+### C. Install skateboard-ui 5.0.0
+
+8. Install exact pin (must match this template):
+   ```bash
+   npm install @stevederico/skateboard-ui@5.0.0 --save-exact
+   ```
+9. `npm run verify:ui` (or compare `package.json` vs `node_modules/@stevederico/skateboard-ui/package.json`). Declared must equal installed. Commit `package.json` **and** `package-lock.json` together.
+
+### D. Breaking frontend API changes (ui 5.0)
+
+10. **Icons — rewrite all imports**
+    ```bash
+    # Find call sites
+    rg -n "skateboard-ui/icons|DynamicIcon" src
+    ```
+    - Replace `import { X } from '@stevederico/skateboard-ui/icons'` (and `/icons/X`) with `import { X } from 'lucide-react'`.
+    - Delete every `import DynamicIcon from '@stevederico/skateboard-ui/DynamicIcon'` — use a named Lucide icon in app code. Shell still resolves `constants.json` `icon` strings privately (`constantsIcon`); apps do not get a public dynamic resolver.
+    - Ensure `lucide-react` is listed in app `dependencies` (boilerplate ships it; ui 5.0 also depends on it).
+
+11. **Keep shadcn import paths**
+    - Continue using `@stevederico/skateboard-ui/shadcn/ui/<name>`.
+    - Do **not** rewrite to `…/ui/<name>` unless you want to — both work; `shadcn/ui/*` is remapped via package `exports` (linker shim files are gone).
+
+12. **Routing**
+    - Apps must **not** depend on `react-router` / `react-router-dom` directly for shell navigation. Use `useSafeNavigate()` from `@stevederico/skateboard-ui/Utilities`.
+    - ui 5.0 pins `react-router@7.18.3` (CVE-2026-55685). Do not downgrade below 7.18.0.
+
+13. **Removed Utilities (already gone in late 4.x — confirm)**
+    - No `useForm`, `logEvent`, or public `setSidebarVisible` / `setTabBarVisible` (use `showSidebar` / `hideSidebar` / `showTabBar` / `hideTabBar` if needed).
+
+### E. Vite / frontend toolchain (boilerplate 5.0)
+
+14. **Drop `@vitejs/plugin-react-swc`**
+    - Remove from `package.json` `devDependencies` and from `vite.config.ts` plugins.
+    - Keep Vite esbuild JSX: `esbuild: { jsx: 'automatic', jsxImportSource: 'react' }`.
+    - Expect **full page reload** on edit (no React Fast Refresh plugin).
+
+15. **Drop forced dep re-optimize**
+    - Scripts: `vite --mode development` — **not** `vite --force`.
+    - Remove `optimizeDeps.force: true` from `vite.config.ts`.
+
+16. **Drop leftover coverage scripts** if present: `test:coverage`, `test:coverage:build`.
+
+17. Align `vite.config.ts` / `vite.plugins.ts` with the template via the updater (or copy from the reference repo).
+
+### F. Verify
+
+18. `npm run typecheck`
+19. `npm run test` (frontend script tests)
+20. `cd backend && cargo test --locked`
+21. Smoke: `npm run start` + `cd backend && cargo run` — sign-in, one API round-trip, checkout/portal only if Stripe env is set.
+22. Optional live Stripe webhook: `backend/scripts/stripe-cli-replay.sh` (never CI).
+
+### G. Stamp versions
+
+23. Set `version` and `skateboardVersion` in `package.json` to **5.0.0** (must be equal).
+24. Update the app’s `CHANGELOG.md` / docs that name old versions.
+25. Commit on the branch. Do not push/merge without approval.
+
+### What 5.0 does *not* require
+
+- No rewrite of `constants.json` shape (icon **values** stay Lucide name strings).
+- No change to `@stevederico/skateboard-ui/shadcn/ui/*` import strings for apps.
+- Calendar / CommandMenu / TextView / mid-tier primitives (accordion, progress, …) remain available.
 
 ## Updating from Skateboard Boilerplate
 
@@ -632,17 +737,30 @@ This project was created from the skateboard boilerplate. The `skateboardVersion
 
 **Reference repo:** https://github.com/stevederico/skateboard
 
-### Update Workflow
+For **4.x → 5.0**, use the checklist above (not only the short workflow).
+
+### Update Workflow (general)
 
 1. Check `skateboardVersion` in package.json against latest release
-2. Review CHANGELOG.md in the reference repo for changes
-3. Update skateboard-ui: `npm install @stevederico/skateboard-ui@latest`
-4. Compare and update boilerplate files
-5. Update `skateboardVersion` field after applying changes
+2. Review `skateboard-changelog.md` in the reference repo for changes
+3. Update skateboard-ui to the pin in the reference `package.json`: `npm install @stevederico/skateboard-ui@<pin> --save-exact`
+4. Run `scripts/update-skateboard.js` for vendored boilerplate (especially `backend/`)
+5. Apply the breaking-change steps for that release (for 5.0: section **Migrating 4.x → 5.0**)
+6. Update `skateboardVersion` only after verify is green
+
+**CRITICAL — never bump a version in `package.json` without installing it.** Editing the
+dependency string (or running `npm install <pkg>@x` then reverting node_modules) leaves the
+*declared* version ahead of the *installed* one — the lockfile and `node_modules` still hold
+the old code, so builds/tests pass against stale deps and the bump is a lie. After ANY change to
+a version in `package.json`:
+1. Run `npm install` so the lockfile + `node_modules` actually match.
+2. Verify declared == installed before committing:
+   `npm run verify:ui` (for skateboard-ui), or
+   `npm ls <pkg>` / compare `package.json` vs `node_modules/<pkg>/package.json`.
+3. Commit `package.json` **and** `package-lock.json` together — never one without the other.
 
 ### Safe to Update (review and apply)
-- `backend/server.ts` - Server logic, security updates
-- `backend/adapters/*` - Database adapters
+- `backend/src/*` - Rust server
 - `vite.config.ts` - Build configuration
 - `src/assets/styles.css` - Theme variables (merge carefully)
 

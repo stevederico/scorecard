@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@stevederico/skateboar
 import { Button } from '@stevederico/skateboard-ui/shadcn/ui/button';
 import { Input } from '@stevederico/skateboard-ui/shadcn/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@stevederico/skateboard-ui/shadcn/ui/popover';
-import { ChevronLeft, ChevronRight, RotateCcw } from '@stevederico/skateboard-ui/icons';
+import { ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@stevederico/skateboard-ui/shadcn/ui/drawer';
 
 /** A single player in a team's batting lineup. */

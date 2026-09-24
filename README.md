@@ -18,7 +18,7 @@
 
 ## About
 
-A baseball scorecard built with React and Hono. Track at-bats with diamond-based notation, manage lineups, and score games using standard baseball shorthand (K, BB, 6-3, F8, HR, etc).
+A baseball scorecard built with React and a zero-crate Rust backend. Track at-bats with diamond-based notation, manage lineups, and score games using standard baseball shorthand (K, BB, 6-3, F8, HR, etc).
 
 ### Features
 
@@ -35,8 +35,9 @@ A baseball scorecard built with React and Hono. Track at-bats with diamond-based
 ```bash
 git clone https://github.com/stevederico/scorecard.git
 cd scorecard
-deno install
-deno run start
+npm install
+npm run start          # frontend on :5173
+cd backend && cargo run   # backend on :8000
 ```
 
 App runs at `http://localhost:5173`
@@ -46,11 +47,11 @@ App runs at `http://localhost:5173`
 | Technology | Purpose |
 |---|---|
 | React 19 | UI |
-| Vite 7.1+ | Build & dev server |
+| Vite 8 | Build & dev server |
 | Tailwind CSS v4 | Styling |
 | Shadcn/ui | Components |
-| Hono | Backend server |
-| SQLite | Database |
+| Rust (zero-crate) | Backend server |
+| SQLite (libsqlite3) | Database |
 | Skateboard-ui | Application shell |
 
 ## Project Structure
@@ -59,12 +60,14 @@ App runs at `http://localhost:5173`
 scorecard/
 ├── src/
 │   ├── components/
-│   │   └── BaseballView.jsx   # Scorecard component
-│   ├── main.jsx               # Routes
-│   └── constants.json         # App config
+│   │   └── BaseballView.tsx   # Scorecard component
+│   ├── main.tsx               # Routes
+│   ├── constants.json         # App config
+│   └── legal.json             # Terms, privacy, EULA bodies
 ├── backend/
-│   ├── server.js              # Hono API server
-│   └── adapters/              # Database adapters
+│   ├── src/                   # Rust API server (routes.rs, db.rs, …)
+│   ├── Cargo.toml             # Zero-crate: [dependencies] stays empty
+│   └── config.json            # Static dir + database config
 └── package.json
 ```
 

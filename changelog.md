@@ -1,5 +1,24 @@
 ## CHANGELOG
 
+5.6.0
+
+  Upgrade skateboard 5.6.0
+  Catch worker panics
+  Cap request wall clock
+  Bound Stripe job queue
+  Allowlist checkout keys
+
+5.4.0
+
+  Migrate skateboard 5.4.0
+  Replace Hono Rust backend
+  Pin skateboard-ui 5.1.0
+  Rewrite icons lucide-react
+  Split legal json
+  Move theme bootstrap public
+  Drop vitest swc
+  Allow dottie CSP
+
 0.7.0
 
   Bump skateboard 3.4.0

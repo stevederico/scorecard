@@ -1,52 +1,36 @@
 {
   "name": "scorecard-app",
   "private": false,
-  "version": "0.7.0",
-  "skateboardVersion": "4.11.0",
+  "version": "5.6.0",
+  "skateboardVersion": "5.6.0",
   "type": "module",
-  "workspaces": [
-    "backend"
-  ],
   "scripts": {
-    "start": "npm run front & npm run server",
-    "front": "vite --force --mode development",
-    "server": "npm run --workspace=backend dev",
+    "start": "vite --mode development",
+    "front": "vite --mode development",
     "build": "npm run typecheck && vite build --mode production",
     "prod": "npm run typecheck && vite build --mode production",
-    "install-all": "npm install && npm install --workspace=backend",
+    "install-all": "npm install",
     "verify:ui": "node scripts/verify-ui-version.mjs",
     "postinstall": "git config core.hooksPath .githooks || true",
-    "test": "npm run typecheck && npm run test:backend && npm run test:frontend && npm run test:build",
-    "test:watch": "npm run --workspace=backend test:watch",
-    "typecheck": "tsc -p tsconfig.json && tsc -p backend/tsconfig.json",
-    "test:backend": "npm run test --workspace=backend",
-    "test:frontend": "vitest run --passWithNoTests",
+    "test": "npm run typecheck && npm run test:build && npm run test:docs",
+    "typecheck": "tsc -p tsconfig.json",
     "test:build": "node --experimental-test-module-mocks --test vite.plugins.test.js scripts/verify-ui-version.test.js scripts/update-skateboard.test.js scripts/version-consistency.test.js",
-    "test:coverage": "npm run test:coverage:backend && npm run test:coverage:frontend && npm run test:coverage:build",
-    "test:coverage:backend": "node --experimental-test-module-mocks --experimental-test-coverage --test-concurrency=1 --test backend/server.test.ts backend/server.lifecycle.test.js backend/server.prod-import.test.js backend/adapters/*.test.js backend/lib/*.test.js",
-    "test:coverage:frontend": "vitest run --coverage",
-    "test:coverage:build": "node --experimental-test-module-mocks --experimental-test-coverage --test vite.plugins.test.js scripts/verify-ui-version.test.js"
+    "test:docs": "node scripts/test-docs.mjs"
   },
   "dependencies": {
-    "@stevederico/skateboard-ui": "4.14.0",
-    "react": "19.2.6",
-    "react-dom": "19.2.6",
-    "react-router": "7.15.0"
+    "@stevederico/skateboard-ui": "5.1.0",
+    "lucide-react": "0.546.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
   },
   "devDependencies": {
-    "@tailwindcss/vite": "4.3.0",
-    "@testing-library/jest-dom": "^6.9.1",
-    "@testing-library/react": "^16.3.0",
-    "@types/node": "25.9.1",
-    "@types/react": "19.2.16",
-    "@types/react-dom": "19.2.3",
-    "@vitejs/plugin-react-swc": "4.3.1",
-    "@vitest/coverage-v8": "^3.2.4",
-    "jsdom": "^26.1.0",
-    "tailwindcss": "4.3.0",
+    "@tailwindcss/vite": "4.3.3",
+    "@types/node": "25.9.5",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.7",
+    "tailwindcss": "4.3.3",
     "typescript": "7.0.2",
-    "vite": "8.0.13",
-    "vitest": "^3.2.4"
+    "vite": "8.2.2"
   },
   "engines": {
     "node": ">=24.0.0"
