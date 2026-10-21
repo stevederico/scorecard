@@ -47,24 +47,6 @@ const appRoutes: AppRoute[] = [
  * @param {Array} config.appRoutes - Route configuration array
  * @param {string} config.defaultRoute - Initial route path
  */
-if (import.meta.env.VITE_ANALYTICS_ID && import.meta.env.VITE_ANALYTICS_SRC) {
-  const s = document.createElement('script');
-  s.defer = true;
-  s.src = import.meta.env.VITE_ANALYTICS_SRC;
-  s.dataset.websiteId = import.meta.env.VITE_ANALYTICS_ID;
-  document.head.appendChild(s);
-}
-
-// dottie analytics (parallel to Umami). Public repo — id loaded from env, never hardcoded.
-if (import.meta.env.VITE_DOTTIE_ID && import.meta.env.VITE_DOTTIE_SRC) {
-  const s = document.createElement('script');
-  s.defer = true;
-  s.src = import.meta.env.VITE_DOTTIE_SRC;
-  s.dataset.websiteId = import.meta.env.VITE_DOTTIE_ID;
-  s.dataset.domains = 'scorecard.bixbyapps.com';
-  document.head.appendChild(s);
-}
-
 createSkateboardApp({
   constants,
   appRoutes,

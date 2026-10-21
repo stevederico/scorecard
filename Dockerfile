@@ -5,12 +5,6 @@ COPY package.json package-lock.json ./
 RUN npm ci --ignore-scripts
 COPY . .
 
-# Vite bakes VITE_* env at build time; Railway build vars must be declared as ARG to reach the build.
-ARG VITE_DOTTIE_ID
-ARG VITE_DOTTIE_SRC
-ENV VITE_DOTTIE_ID=$VITE_DOTTIE_ID
-ENV VITE_DOTTIE_SRC=$VITE_DOTTIE_SRC
-
 RUN if find /app \( -name '.env' -o -name '.env.*' \) ! -name '.env.example' -print -quit | grep -q .; then \
       echo 'FATAL: .env file present in Docker build context — aborting'; \
       find /app \( -name '.env' -o -name '.env.*' \) ! -name '.env.example' -print; \

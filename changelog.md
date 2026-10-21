@@ -1,5 +1,10 @@
 ## CHANGELOG
 
+5.6.1
+
+  Remove analytics code
+  Drop dottie CSP
+
 5.6.0
 
   Upgrade skateboard 5.6.0

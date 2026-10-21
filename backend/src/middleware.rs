@@ -54,16 +54,12 @@ pub fn preflight(req: &Request, allowed: &[String]) -> Response {
 ///
 /// Kept as one literal rather than rebuilt from a map: the directive order is
 /// part of the header bytes, and there is exactly one policy.
-///
-/// App delta from the template: `https://api.dottie.ai` is allowed in
-/// `script-src` (the analytics loader tag main.tsx injects) and `connect-src`
-/// (its event beacons). Without it the browser blocks dottie analytics.
 const CSP: &str = "default-src 'self'; \
-script-src 'self' https://api.dottie.ai; \
+script-src 'self'; \
 style-src 'self' 'unsafe-inline'; \
 img-src 'self' https:; \
 font-src 'self'; \
-connect-src 'self' https://api.dottie.ai; \
+connect-src 'self'; \
 frame-ancestors 'none'";
 
 /// Permissions-Policy value: every listed feature disabled.
@@ -234,7 +230,7 @@ mod tests {
         let res = apply_secure_headers(Response::empty(200), false);
         assert_eq!(
             header(&res, "Content-Security-Policy"),
-            Some("default-src 'self'; script-src 'self' https://api.dottie.ai; style-src 'self' 'unsafe-inline'; img-src 'self' https:; font-src 'self'; connect-src 'self' https://api.dottie.ai; frame-ancestors 'none'")
+            Some("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'")
         );
     }
 
