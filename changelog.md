@@ -1,5 +1,9 @@
 ## CHANGELOG
 
+5.6.2
+
+  Bump skateboard-ui 5.11.4
+
 5.6.1
 
   Remove analytics code
