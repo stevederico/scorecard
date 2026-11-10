@@ -31,8 +31,8 @@ COPY backend/rust-toolchain.toml backend/Cargo.toml backend/Cargo.lock ./
 COPY backend/src ./src
 RUN cargo build --release --locked
 
-# debian:bookworm-20261020-slim, pushed 2026-10-21
-FROM debian:bookworm-20261020-slim@sha256:7ff6ba31527b9e336162fa061746c366c4b2032f4d2cff2078bea43f78efe3f8
+# debian:bookworm-20261104-slim, pushed 2026-11-05
+FROM debian:bookworm-20261104-slim@sha256:734a72b3d6142a71993b4bc580ca01d8ca687f77a2c422d96a961d3376b179bc
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
       libsqlite3-0 libcurl4 ca-certificates curl \

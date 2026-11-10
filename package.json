@@ -1,7 +1,7 @@
 {
   "name": "scorecard-app",
   "private": false,
-  "version": "5.6.3",
+  "version": "5.6.4",
   "skateboardVersion": "5.6.0",
   "type": "module",
   "scripts": {
