@@ -1,10 +1,744 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Special+Elite&display=swap');
 @import "@stevederico/skateboard-ui/styles.css";
 
-@source '../../node_modules/@stevederico/skateboard-ui';
+/* This app's plain CSS: the classes src/ uses that skateboard-ui's styles.css does not
+   define, a few shell rules repeated after them so they keep their precedence, and the
+   brand and dark-mode overrides. No Tailwind: edit by hand. A className token missing
+   here and in skateboard-ui's CSS fails lint (no-unknown-classes). */
 
-@theme {
-  --color-app: #8B2500;
+@import "https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Special+Elite&display=swap";
+
+@layer theme {
+  :root, :host {
+    --color-app: #8b2500;
+  }
+}
+
+@layer base {
+  ::selection {
+    background-color: #8b250033;
+  }
+}
+
+@layer utilities {
+  .mr-1 {
+    margin-right: var(--spacing);
+  }
+
+  .ml-1 {
+    margin-left: var(--spacing);
+  }
+
+  .ml-2 {
+    margin-left: calc(var(--spacing) * 2);
+  }
+
+  .w-6 {
+    width: calc(var(--spacing) * 6);
+  }
+
+  .w-7 {
+    width: calc(var(--spacing) * 7);
+  }
+
+  .w-8 {
+    width: calc(var(--spacing) * 8);
+  }
+
+  .w-12 {
+    width: calc(var(--spacing) * 12);
+  }
+
+  .w-16 {
+    width: calc(var(--spacing) * 16);
+  }
+
+  .w-64 {
+    width: calc(var(--spacing) * 64);
+  }
+
+  .cursor-not-allowed {
+    cursor: not-allowed;
+  }
+
+  .grid-cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .grid-cols-5 {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  :where(.space-y-2 > :not(:last-child)) {
+    --tw-space-y-reverse: 0;
+    margin-block-start: calc(calc(var(--spacing) * 2) * var(--tw-space-y-reverse));
+    margin-block-end: calc(calc(var(--spacing) * 2) * calc(1 - var(--tw-space-y-reverse)));
+  }
+
+  :where(.space-y-3 > :not(:last-child)) {
+    --tw-space-y-reverse: 0;
+    margin-block-start: calc(calc(var(--spacing) * 3) * var(--tw-space-y-reverse));
+    margin-block-end: calc(calc(var(--spacing) * 3) * calc(1 - var(--tw-space-y-reverse)));
+  }
+
+  .border-b-2 {
+    border-bottom-style: var(--tw-border-style);
+    border-bottom-width: 2px;
+  }
+
+  .border-app\/30 {
+    border-color: #8b25004d;
+  }
+
+  .border-border, .border-border\/60 {
+    border-color: var(--border);
+  }
+
+  @supports (color: color-mix(in lab, red, red)) {
+    .border-border\/60 {
+      border-color: color-mix(in oklab, var(--border) 60%, transparent);
+    }
+  }
+
+  .border-foreground, .border-foreground\/30 {
+    border-color: var(--foreground);
+  }
+
+  @supports (color: color-mix(in lab, red, red)) {
+    .border-foreground\/30 {
+      border-color: color-mix(in oklab, var(--foreground) 30%, transparent);
+    }
+  }
+
+  .bg-app\/10 {
+    background-color: #8b25001a;
+  }
+
+  .bg-app\/15 {
+    background-color: #8b250026;
+  }
+
+  @supports (color: color-mix(in lab, red, red)) {
+    .bg-app\/15 {
+      background-color: color-mix(in oklab, var(--color-app) 15%, transparent);
+    }
+  }
+
+  .bg-background, .bg-background\/80 {
+    background-color: var(--background);
+  }
+
+  @supports (color: color-mix(in lab, red, red)) {
+    .bg-background\/80 {
+      background-color: color-mix(in oklab, var(--background) 80%, transparent);
+    }
+  }
+
+  .bg-foreground {
+    background-color: var(--foreground);
+  }
+
+  .bg-muted, .bg-muted\/30 {
+    background-color: var(--muted);
+  }
+
+  @supports (color: color-mix(in lab, red, red)) {
+    .bg-muted\/30 {
+      background-color: color-mix(in oklab, var(--muted) 30%, transparent);
+    }
+  }
+
+  .bg-muted\/80 {
+    background-color: var(--muted);
+  }
+
+  @supports (color: color-mix(in lab, red, red)) {
+    .bg-muted\/80 {
+      background-color: color-mix(in oklab, var(--muted) 80%, transparent);
+    }
+  }
+
+  .bg-primary {
+    background-color: var(--primary);
+  }
+
+  .bg-transparent {
+    background-color: #0000;
+  }
+
+  .bg-gradient-to-b {
+    --tw-gradient-position: to bottom in oklab;
+    background-image: linear-gradient(var(--tw-gradient-stops));
+  }
+
+  .from-app\/5 {
+    --tw-gradient-from: #8b25000d;
+  }
+
+  .bg-clip-padding {
+    background-clip: padding-box;
+  }
+
+  .px-12 {
+    padding-inline: calc(var(--spacing) * 12);
+  }
+
+  .pb-1 {
+    padding-bottom: var(--spacing);
+  }
+
+  .pb-6 {
+    padding-bottom: calc(var(--spacing) * 6);
+  }
+
+  .pb-20 {
+    padding-bottom: calc(var(--spacing) * 20);
+  }
+
+  .text-right {
+    text-align: right;
+  }
+
+  .font-mono {
+    font-family: var(--font-mono);
+  }
+
+  .text-lg {
+    font-size: var(--text-lg);
+    line-height: var(--tw-leading, var(--text-lg--line-height));
+  }
+
+  .text-sm {
+    font-size: var(--text-sm);
+    line-height: var(--tw-leading, var(--text-sm--line-height));
+  }
+
+  .text-xs {
+    font-size: var(--text-xs);
+    line-height: var(--tw-leading, var(--text-xs--line-height));
+  }
+
+  .leading-\[1\.05\] {
+    --tw-leading: 1.05;
+    line-height: 1.05;
+  }
+
+  .leading-none {
+    --tw-leading: 1;
+    line-height: 1;
+  }
+
+  .leading-normal {
+    --tw-leading: var(--leading-normal);
+    line-height: var(--leading-normal);
+  }
+
+  .leading-relaxed {
+    --tw-leading: var(--leading-relaxed);
+    line-height: var(--leading-relaxed);
+  }
+
+  .font-bold {
+    --tw-font-weight: var(--font-weight-bold);
+    font-weight: var(--font-weight-bold);
+  }
+
+  .font-medium {
+    --tw-font-weight: var(--font-weight-medium);
+    font-weight: var(--font-weight-medium);
+  }
+
+  .font-normal {
+    --tw-font-weight: var(--font-weight-normal);
+    font-weight: var(--font-weight-normal);
+  }
+
+  .font-semibold {
+    --tw-font-weight: var(--font-weight-semibold);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .text-foreground, .text-foreground\/20 {
+    color: var(--foreground);
+  }
+
+  @supports (color: color-mix(in lab, red, red)) {
+    .text-foreground\/20 {
+      color: color-mix(in oklab, var(--foreground) 20%, transparent);
+    }
+  }
+
+  .text-foreground\/40 {
+    color: var(--foreground);
+  }
+
+  @supports (color: color-mix(in lab, red, red)) {
+    .text-foreground\/40 {
+      color: color-mix(in oklab, var(--foreground) 40%, transparent);
+    }
+  }
+
+  .text-foreground\/60 {
+    color: var(--foreground);
+  }
+
+  .text-muted-foreground {
+    color: var(--muted-foreground);
+  }
+
+  .text-primary {
+    color: var(--primary);
+  }
+
+  .text-white {
+    color: var(--color-white);
+  }
+
+  .tabular-nums {
+    --tw-numeric-spacing: tabular-nums;
+    font-variant-numeric: var(--tw-ordinal, ) var(--tw-slashed-zero, ) var(--tw-numeric-figure, ) var(--tw-numeric-spacing, ) var(--tw-numeric-fraction, );
+  }
+
+  .opacity-30 {
+    opacity: .3;
+  }
+
+  .bg-blend-color {
+    background-blend-mode: color;
+  }
+
+  .group-focus\/dropdown-menu-item\:text-accent-foreground:is(:where(.group\/dropdown-menu-item):focus *) {
+    color: var(--accent-foreground);
+  }
+
+  .group-data-selected\/command-item\:text-foreground:is(:where(.group\/command-item)[data-selected] *) {
+    color: var(--foreground);
+  }
+
+  .group-data-\[size\=sm\]\/avatar\:text-xs:is(:where(.group\/avatar)[data-size="sm"] *) {
+    font-size: var(--text-xs);
+    line-height: var(--tw-leading, var(--text-xs--line-height));
+  }
+
+  .group-data-\[size\=sm\]\/card\:text-sm:is(:where(.group\/card)[data-size="sm"] *) {
+    font-size: var(--text-sm);
+    line-height: var(--tw-leading, var(--text-sm--line-height));
+  }
+
+  .file\:bg-transparent::file-selector-button {
+    background-color: #0000;
+  }
+
+  .backdrop\:bg-black\/10::backdrop {
+    background-color: #0000001a;
+  }
+
+  @supports (color: color-mix(in lab, red, red)) {
+    .backdrop\:bg-black\/10::backdrop {
+      background-color: color-mix(in oklab, var(--color-black) 10%, transparent);
+    }
+  }
+
+  .after\:bg-muted:after {
+    content: var(--tw-content);
+    background-color: var(--muted);
+  }
+
+  @media (hover: hover) {
+    .hover\:border-border:hover {
+      border-color: var(--border);
+    }
+
+    .hover\:bg-accent\/30:hover {
+      background-color: var(--accent);
+    }
+
+    @supports (color: color-mix(in lab, red, red)) {
+      .hover\:bg-accent\/30:hover {
+        background-color: color-mix(in oklab, var(--accent) 30%, transparent);
+      }
+    }
+
+    .hover\:bg-muted:hover, .hover\:bg-muted\/50:hover {
+      background-color: var(--muted);
+    }
+
+    .hover\:bg-primary\/80:hover {
+      background-color: var(--primary);
+    }
+
+    @supports (color: color-mix(in lab, red, red)) {
+      .hover\:bg-primary\/80:hover {
+        background-color: color-mix(in oklab, var(--primary) 80%, transparent);
+      }
+    }
+
+    .hover\:bg-sidebar-accent:hover {
+      background-color: var(--sidebar-accent);
+    }
+
+    .hover\:text-foreground:hover {
+      color: var(--foreground);
+    }
+
+    .hover\:opacity-75:hover {
+      opacity: .75;
+    }
+
+    .hover\:group-data-\[collapsible\=offcanvas\]\:bg-sidebar:hover:is(:where(.group)[data-collapsible="offcanvas"] *) {
+      background-color: var(--sidebar);
+    }
+
+    .hover\:after\:bg-sidebar-border:hover:after {
+      content: var(--tw-content);
+      background-color: var(--sidebar-border);
+    }
+  }
+
+  .focus\:text-accent-foreground:focus {
+    color: var(--accent-foreground);
+  }
+
+  :is(.focus\:\*\*\:text-accent-foreground:focus *), :is(.not-data-\[variant\=destructive\]\:focus\:\*\*\:text-accent-foreground:not([data-variant="destructive"]):focus *) {
+    color: var(--accent-foreground);
+  }
+
+  .active\:scale-95:active {
+    --tw-scale-x: 95%;
+    --tw-scale-y: 95%;
+    --tw-scale-z: 95%;
+    scale: var(--tw-scale-x) var(--tw-scale-y);
+  }
+
+  .active\:bg-accent\/50:active {
+    background-color: var(--accent);
+  }
+
+  @supports (color: color-mix(in lab, red, red)) {
+    .active\:bg-accent\/50:active {
+      background-color: color-mix(in oklab, var(--accent) 50%, transparent);
+    }
+  }
+
+  .active\:bg-sidebar-accent:active {
+    background-color: var(--sidebar-accent);
+  }
+
+  :where([data-slot="tooltip-content"]) .in-data-\[slot\=tooltip-content\]\:bg-background\/20 {
+    background-color: var(--background);
+  }
+
+  @supports (color: color-mix(in lab, red, red)) {
+    :where([data-slot="tooltip-content"]) .in-data-\[slot\=tooltip-content\]\:bg-background\/20 {
+      background-color: color-mix(in oklab, var(--background) 20%, transparent);
+    }
+  }
+
+  :where([data-slot="tooltip-content"]) .in-data-\[slot\=tooltip-content\]\:text-background {
+    color: var(--background);
+  }
+
+  .has-aria-expanded\:bg-muted\/50:has([aria-expanded="true"]) {
+    background-color: var(--muted);
+  }
+
+  @supports (color: color-mix(in lab, red, red)) {
+    .has-aria-expanded\:bg-muted\/50:has([aria-expanded="true"]) {
+      background-color: color-mix(in oklab, var(--muted) 50%, transparent);
+    }
+  }
+
+  .aria-expanded\:bg-muted[aria-expanded="true"] {
+    background-color: var(--muted);
+  }
+
+  .aria-expanded\:text-foreground[aria-expanded="true"] {
+    color: var(--foreground);
+  }
+
+  .aria-pressed\:bg-muted[aria-pressed="true"] {
+    background-color: var(--muted);
+  }
+
+  .aria-selected\:text-muted-foreground[aria-selected="true"] {
+    color: var(--muted-foreground);
+  }
+
+  .data-active\:bg-sidebar-accent[data-active] {
+    background-color: var(--sidebar-accent);
+  }
+
+  .data-active\:font-medium[data-active] {
+    --tw-font-weight: var(--font-weight-medium);
+    font-weight: var(--font-weight-medium);
+  }
+
+  .data-active\:text-foreground[data-active] {
+    color: var(--foreground);
+  }
+
+  .data-open\:text-accent-foreground[data-open] {
+    color: var(--accent-foreground);
+  }
+
+  @media (hover: hover) {
+    .data-open\:hover\:bg-sidebar-accent[data-open]:hover {
+      background-color: var(--sidebar-accent);
+    }
+  }
+
+  .data-popup-open\:text-accent-foreground[data-popup-open] {
+    color: var(--accent-foreground);
+  }
+
+  .data-selected\:text-foreground[data-selected] {
+    color: var(--foreground);
+  }
+
+  :is(.\*\:data-\[slot\=select-value\]\:line-clamp-1 > *)[data-slot="select-value"] {
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    display: -webkit-box;
+    overflow: hidden;
+  }
+
+  :is(.\*\:data-\[slot\=select-value\]\:flex > *)[data-slot="select-value"] {
+    display: flex;
+  }
+
+  .data-\[state\=on\]\:bg-muted[data-state="on"], .data-\[state\=selected\]\:bg-muted[data-state="selected"] {
+    background-color: var(--muted);
+  }
+
+  .data-\[variant\=destructive\]\:text-destructive[data-variant="destructive"] {
+    color: var(--destructive);
+  }
+
+  .data-\[variant\=destructive\]\:focus\:text-destructive[data-variant="destructive"]:focus {
+    color: var(--destructive);
+  }
+
+  .data-\[variant\=label\]\:text-sm[data-variant="label"] {
+    font-size: var(--text-sm);
+    line-height: var(--tw-leading, var(--text-sm--line-height));
+  }
+
+  .data-\[variant\=legend\]\:text-base[data-variant="legend"] {
+    font-size: var(--text-base);
+    line-height: var(--tw-leading, var(--text-base--line-height));
+  }
+
+  @media (min-width: 48rem) {
+    .md\:grid-cols-4 {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .md\:p-4 {
+      padding: calc(var(--spacing) * 4);
+    }
+
+    .md\:text-4xl {
+      font-size: var(--text-4xl);
+      line-height: var(--tw-leading, var(--text-4xl--line-height));
+    }
+
+    .md\:text-5xl {
+      font-size: var(--text-5xl);
+      line-height: var(--tw-leading, var(--text-5xl--line-height));
+    }
+
+    .md\:text-6xl {
+      font-size: var(--text-6xl);
+      line-height: var(--tw-leading, var(--text-6xl--line-height));
+    }
+  }
+
+  @media (min-width: 64rem) {
+    .lg\:text-7xl {
+      font-size: var(--text-7xl);
+      line-height: var(--tw-leading, var(--text-7xl--line-height));
+    }
+  }
+
+  .dark\:border-input:is(.dark *) {
+    border-color: var(--input);
+  }
+
+  .dark\:bg-input\/30:is(.dark *) {
+    background-color: var(--input);
+  }
+
+  @supports (color: color-mix(in lab, red, red)) {
+    .dark\:bg-input\/30:is(.dark *) {
+      background-color: color-mix(in oklab, var(--input) 30%, transparent);
+    }
+  }
+
+  .dark\:text-muted-foreground:is(.dark *) {
+    color: var(--muted-foreground);
+  }
+
+  @media (hover: hover) {
+    .dark\:hover\:bg-input\/50:is(.dark *):hover {
+      background-color: var(--input);
+    }
+
+    @supports (color: color-mix(in lab, red, red)) {
+      .dark\:hover\:bg-input\/50:is(.dark *):hover {
+        background-color: color-mix(in oklab, var(--input) 50%, transparent);
+      }
+    }
+
+    .dark\:hover\:bg-muted\/50:is(.dark *):hover {
+      background-color: var(--muted);
+    }
+
+    @supports (color: color-mix(in lab, red, red)) {
+      .dark\:hover\:bg-muted\/50:is(.dark *):hover {
+        background-color: color-mix(in oklab, var(--muted) 50%, transparent);
+      }
+    }
+
+    .hover\:dark\:bg-gray-100:hover:is(.dark *) {
+      background-color: var(--color-gray-100);
+    }
+
+    .dark\:hover\:text-foreground:is(.dark *):hover {
+      color: var(--foreground);
+    }
+  }
+
+  :where([data-slot="tooltip-content"]) .dark\:in-data-\[slot\=tooltip-content\]\:bg-background\/10:is(.dark *) {
+    background-color: var(--background);
+  }
+
+  @supports (color: color-mix(in lab, red, red)) {
+    :where([data-slot="tooltip-content"]) .dark\:in-data-\[slot\=tooltip-content\]\:bg-background\/10:is(.dark *) {
+      background-color: color-mix(in oklab, var(--background) 10%, transparent);
+    }
+  }
+
+  .dark\:has-data-checked\:bg-primary\/10:is(.dark *):has([data-checked]) {
+    background-color: var(--primary);
+  }
+
+  @supports (color: color-mix(in lab, red, red)) {
+    .dark\:has-data-checked\:bg-primary\/10:is(.dark *):has([data-checked]) {
+      background-color: color-mix(in oklab, var(--primary) 10%, transparent);
+    }
+  }
+
+  .dark\:data-active\:bg-input\/30:is(.dark *)[data-active] {
+    background-color: var(--input);
+  }
+
+  @supports (color: color-mix(in lab, red, red)) {
+    .dark\:data-active\:bg-input\/30:is(.dark *)[data-active] {
+      background-color: color-mix(in oklab, var(--input) 30%, transparent);
+    }
+  }
+
+  .dark\:data-active\:text-foreground:is(.dark *)[data-active] {
+    color: var(--foreground);
+  }
+
+  .dark\:group-data-\[variant\=line\]\/tabs-list\:data-active\:bg-transparent:is(.dark *):is(:where(.group\/tabs-list)[data-variant="line"] *)[data-active] {
+    background-color: #0000;
+  }
+
+  .dark\:data-checked\:bg-primary:is(.dark *)[data-checked] {
+    background-color: var(--primary);
+  }
+
+  .dark\:data-checked\:bg-primary-foreground:is(.dark *)[data-checked] {
+    background-color: var(--primary-foreground);
+  }
+
+  .dark\:data-unchecked\:bg-foreground:is(.dark *)[data-unchecked] {
+    background-color: var(--foreground);
+  }
+
+  .dark\:data-unchecked\:bg-input\/80:is(.dark *)[data-unchecked] {
+    background-color: var(--input);
+  }
+
+  @supports (color: color-mix(in lab, red, red)) {
+    .dark\:data-unchecked\:bg-input\/80:is(.dark *)[data-unchecked] {
+      background-color: color-mix(in oklab, var(--input) 80%, transparent);
+    }
+  }
+
+  .dark\:data-\[variant\=destructive\]\:focus\:bg-destructive\/20:is(.dark *)[data-variant="destructive"]:focus {
+    background-color: var(--destructive);
+  }
+
+  @supports (color: color-mix(in lab, red, red)) {
+    .dark\:data-\[variant\=destructive\]\:focus\:bg-destructive\/20:is(.dark *)[data-variant="destructive"]:focus {
+      background-color: color-mix(in oklab, var(--destructive) 20%, transparent);
+    }
+  }
+
+  .\[\&_\[cmdk-group-heading\]\]\:text-muted-foreground [cmdk-group-heading] {
+    color: var(--muted-foreground);
+  }
+
+  @media (hover: hover) {
+    .\[\&_a\]\:hover\:text-foreground a:hover {
+      color: var(--foreground);
+    }
+  }
+
+  @media (hover: hover) {
+    .\[a\]\:hover\:bg-primary\/80:is(a):hover {
+      background-color: var(--primary);
+    }
+
+    @supports (color: color-mix(in lab, red, red)) {
+      .\[a\]\:hover\:bg-primary\/80:is(a):hover {
+        background-color: color-mix(in oklab, var(--primary) 80%, transparent);
+      }
+    }
+
+    .\[a\]\:hover\:text-muted-foreground:is(a):hover {
+      color: var(--muted-foreground);
+    }
+
+    :is(.\*\:\[a\]\:hover\:text-foreground > *):is(a):hover {
+      color: var(--foreground);
+    }
+  }
+
+  :is(.data-selected\:\*\*\:\[svg\]\:text-foreground[data-selected] *):is(svg) {
+    color: var(--foreground);
+  }
+
+  :is(.data-\[variant\=destructive\]\:\*\:\[svg\]\:text-destructive[data-variant="destructive"] > *):is(svg) {
+    color: var(--destructive);
+  }
+
+  .\[\&\>a\:hover\]\:text-primary > a:hover {
+    color: var(--primary);
+  }
+
+  .\[\&\>button\]\:p-0 > button {
+    padding: 0;
+  }
+
+  .\[\&\>span\]\:text-xs > span {
+    font-size: var(--text-xs);
+    line-height: var(--tw-leading, var(--text-xs--line-height));
+  }
+
+  [data-slot="card-content"] .\[\[data-slot\=card-content\]_\&\]\:bg-transparent {
+    background-color: #0000;
+  }
+
+  [data-slot="popover-content"] .\[\[data-slot\=popover-content\]_\&\]\:bg-transparent {
+    background-color: #0000;
+  }
+}
+
+.gradient-btn {
+  box-shadow: 0 25px 50px -12px #8b250066;
 }
 
 [data-slot="sidebar-wrapper"] {
@@ -12,363 +746,316 @@
 }
 
 [data-sidebar="footer"] [data-sidebar="menu-button"] > div {
-  flex: 0 1 auto !important;
+  flex: 0 auto !important;
 }
 
 [data-sidebar="footer"] [data-sidebar="menu-button"] > div > span {
-  overflow: visible !important;
   text-overflow: unset !important;
+  overflow: visible !important;
 }
 
-/* === 1920s Vintage Baseball Landing Page === */
-
-/* Landing page root — parchment background with aged paper texture */
 div.min-h-screen {
-  background:
-    repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 40px,
-      rgba(139, 37, 0, 0.02) 40px,
-      rgba(139, 37, 0, 0.02) 41px
-    ),
-    radial-gradient(ellipse at 20% 50%, rgba(139, 37, 0, 0.04) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 20%, rgba(196, 162, 101, 0.06) 0%, transparent 40%),
-    linear-gradient(180deg, #F5E6C8 0%, #EFD9B4 30%, #E8CFA0 60%, #F2E0BC 100%) !important;
-  color: #1B2838 !important;
+  color: #1b2838 !important;
+  background: repeating-linear-gradient(0deg, #0000, #0000 40px, #8b250005 40px 41px), radial-gradient(at 20%, #8b25000a 0%, #0000 50%), radial-gradient(at 80% 20%, #c4a2650f 0%, #0000 40%), linear-gradient(#f5e6c8 0%, #efd9b4 30%, #e8cfa0 60%, #f2e0bc 100%) !important;
 }
 
-/* SVG bunting injected via CSS pseudo-element on the header */
 div.min-h-screen > header {
-  background: #1B2838 !important;
-  border-bottom: 3px solid #C4A265 !important;
-  backdrop-filter: none !important;
   position: relative;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  background: #1b2838 !important;
+  border-bottom: 3px solid #c4a265 !important;
 }
 
-div.min-h-screen > header::after {
-  content: '';
+div.min-h-screen > header:after {
+  content: "";
+  z-index: 40;
+  background: radial-gradient(11.11% 100% at 5.55% 0, #8b2500 70%, #0000 71%), radial-gradient(11.11% 100% at 16.66% 0, #f5e6c8 70%, #0000 71%), radial-gradient(11.11% 100% at 27.77% 0, #1b2838 70%, #0000 71%), radial-gradient(11.11% 100% at 38.88% 0, #8b2500 70%, #0000 71%), radial-gradient(11.11% 100% at 50% 0, #f5e6c8 70%, #0000 71%), radial-gradient(11.11% 100% at 61.11% 0, #1b2838 70%, #0000 71%), radial-gradient(11.11% 100% at 72.22% 0, #8b2500 70%, #0000 71%), radial-gradient(11.11% 100% at 83.33% 0, #f5e6c8 70%, #0000 71%), radial-gradient(11.11% 100% at 94.44% 0, #1b2838 70%, #0000 71%);
+  height: 28px;
   position: absolute;
   bottom: -30px;
   left: 0;
   right: 0;
-  height: 28px;
-  z-index: 40;
-  background:
-    radial-gradient(ellipse 11.11% 100% at 5.55% 0%, #8B2500 70%, transparent 71%),
-    radial-gradient(ellipse 11.11% 100% at 16.66% 0%, #F5E6C8 70%, transparent 71%),
-    radial-gradient(ellipse 11.11% 100% at 27.77% 0%, #1B2838 70%, transparent 71%),
-    radial-gradient(ellipse 11.11% 100% at 38.88% 0%, #8B2500 70%, transparent 71%),
-    radial-gradient(ellipse 11.11% 100% at 50% 0%, #F5E6C8 70%, transparent 71%),
-    radial-gradient(ellipse 11.11% 100% at 61.11% 0%, #1B2838 70%, transparent 71%),
-    radial-gradient(ellipse 11.11% 100% at 72.22% 0%, #8B2500 70%, transparent 71%),
-    radial-gradient(ellipse 11.11% 100% at 83.33% 0%, #F5E6C8 70%, transparent 71%),
-    radial-gradient(ellipse 11.11% 100% at 94.44% 0%, #1B2838 70%, transparent 71%);
 }
 
-/* Navbar text */
 div.min-h-screen > header nav span {
-  font-family: 'Playfair Display', Georgia, 'Times New Roman', serif !important;
-  color: #F5E6C8 !important;
-  letter-spacing: 0.05em;
+  letter-spacing: .05em;
+  color: #f5e6c8 !important;
+  font-family: Playfair Display, Georgia, Times New Roman, serif !important;
 }
 
 div.min-h-screen > header nav a {
-  color: #C4A265 !important;
-  font-family: 'Special Elite', 'Courier New', monospace !important;
-  letter-spacing: 0.05em;
+  letter-spacing: .05em;
+  color: #c4a265 !important;
+  font-family: Special Elite, Courier New, monospace !important;
 }
 
 div.min-h-screen > header nav a:hover {
-  color: #F5E6C8 !important;
+  color: #f5e6c8 !important;
 }
 
-/* Header CTA button */
 div.min-h-screen > header button[data-slot="button"] {
-  font-family: 'Playfair Display', Georgia, serif !important;
-  letter-spacing: 0.05em;
+  letter-spacing: .05em;
+  font-family: Playfair Display, Georgia, serif !important;
 }
 
-/* Hero section */
 div.min-h-screen > main > section:first-child {
-  padding-top: 8rem !important;
   position: relative;
+  padding-top: 8rem !important;
 }
 
 div.min-h-screen > main > section:first-child h1 {
-  font-family: 'Playfair Display', Georgia, 'Times New Roman', serif !important;
-  color: #1B2838 !important;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: .08em;
+  text-shadow: 2px 2px #c4a2654d;
   line-height: 1.1;
-  text-shadow: 2px 2px 0px rgba(196, 162, 101, 0.3);
+  color: #1b2838 !important;
+  font-family: Playfair Display, Georgia, Times New Roman, serif !important;
 }
 
 div.min-h-screen > main > section:first-child p {
-  font-family: 'Special Elite', 'Courier New', monospace !important;
-  color: #5A3E28 !important;
+  color: #5a3e28 !important;
+  font-family: Special Elite, Courier New, monospace !important;
 }
 
-/* Hero CTA button — vintage style */
 div.min-h-screen > main > section:first-child button[data-slot="button"] {
-  background: #1B2838 !important;
-  color: #F5E6C8 !important;
-  border: 2px solid #C4A265 !important;
-  font-family: 'Playfair Display', Georgia, serif !important;
-  font-weight: 700 !important;
-  letter-spacing: 0.1em !important;
+  color: #f5e6c8 !important;
+  letter-spacing: .1em !important;
   text-transform: uppercase !important;
+  background: #1b2838 !important;
+  border: 2px solid #c4a265 !important;
   border-radius: 2px !important;
-  box-shadow: 3px 3px 0px rgba(27, 40, 56, 0.2) !important;
-  transition: all 0.2s ease !important;
+  font-family: Playfair Display, Georgia, serif !important;
+  font-weight: 700 !important;
+  transition: all .2s !important;
+  box-shadow: 3px 3px #1b283833 !important;
 }
 
 div.min-h-screen > main > section:first-child button[data-slot="button"]:hover {
-  background: #8B2500 !important;
-  border-color: #8B2500 !important;
-  box-shadow: 2px 2px 0px rgba(139, 37, 0, 0.3) !important;
   transform: translate(1px, 1px);
+  background: #8b2500 !important;
+  border-color: #8b2500 !important;
+  box-shadow: 2px 2px #8b25004d !important;
 }
 
-/* Features section */
 section#features {
-  background:
-    linear-gradient(180deg, rgba(27, 40, 56, 0.06) 0%, rgba(27, 40, 56, 0.02) 100%),
-    rgba(245, 230, 200, 0.4) !important;
-  border-top: 2px solid #C4A265;
-  border-bottom: 2px solid #C4A265;
+  border-top: 2px solid #c4a265;
+  border-bottom: 2px solid #c4a265;
+  background: linear-gradient(#1b28380f 0%, #1b283805 100%), #f5e6c866 !important;
 }
 
 section#features h2 {
-  font-family: 'Playfair Display', Georgia, 'Times New Roman', serif !important;
-  color: #1B2838 !important;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: .06em;
+  color: #1b2838 !important;
+  font-family: Playfair Display, Georgia, Times New Roman, serif !important;
 }
 
 section#features [data-slot="card"] {
-  background: rgba(245, 230, 200, 0.7) !important;
-  border: 1.5px solid #C4A265 !important;
+  background: #f5e6c8b3 !important;
+  border: 1.5px solid #c4a265 !important;
   border-radius: 2px !important;
-  box-shadow: 3px 3px 0px rgba(27, 40, 56, 0.1) !important;
+  box-shadow: 3px 3px #1b28381a !important;
 }
 
 section#features [data-slot="card-title"] {
-  font-family: 'Playfair Display', Georgia, serif !important;
-  color: #1B2838 !important;
+  color: #1b2838 !important;
+  font-family: Playfair Display, Georgia, serif !important;
 }
 
 section#features [data-slot="card-description"] {
-  font-family: 'Special Elite', 'Courier New', monospace !important;
-  color: #5A3E28 !important;
+  color: #5a3e28 !important;
+  font-family: Special Elite, Courier New, monospace !important;
 }
 
-/* Pricing section */
 section#pricing {
   position: relative;
 }
 
 section#pricing h2 {
-  font-family: 'Playfair Display', Georgia, 'Times New Roman', serif !important;
-  color: #1B2838 !important;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: .06em;
+  color: #1b2838 !important;
+  font-family: Playfair Display, Georgia, Times New Roman, serif !important;
 }
 
 section#pricing [data-slot="card"] {
-  background: rgba(245, 230, 200, 0.7) !important;
-  border: 2px solid #1B2838 !important;
+  background: #f5e6c8b3 !important;
+  border: 2px solid #1b2838 !important;
   border-radius: 2px !important;
-  box-shadow: 4px 4px 0px rgba(27, 40, 56, 0.15) !important;
+  box-shadow: 4px 4px #1b283826 !important;
 }
 
-section#pricing [data-slot="card-title"],
-section#pricing [data-slot="card-description"] {
-  font-family: 'Playfair Display', Georgia, serif !important;
+section#pricing [data-slot="card-title"], section#pricing [data-slot="card-description"] {
+  font-family: Playfair Display, Georgia, serif !important;
 }
 
 section#pricing .text-5xl {
-  font-family: 'Playfair Display', Georgia, serif !important;
-  color: #8B2500 !important;
+  color: #8b2500 !important;
+  font-family: Playfair Display, Georgia, serif !important;
 }
 
 section#pricing li {
-  font-family: 'Special Elite', 'Courier New', monospace !important;
-  color: #1B2838 !important;
+  color: #1b2838 !important;
+  font-family: Special Elite, Courier New, monospace !important;
 }
 
 section#pricing button[data-slot="button"] {
-  background: #8B2500 !important;
-  color: #F5E6C8 !important;
-  border: 2px solid #8B2500 !important;
-  font-family: 'Playfair Display', Georgia, serif !important;
-  font-weight: 700 !important;
-  letter-spacing: 0.1em !important;
+  color: #f5e6c8 !important;
+  letter-spacing: .1em !important;
   text-transform: uppercase !important;
+  background: #8b2500 !important;
+  border: 2px solid #8b2500 !important;
   border-radius: 2px !important;
+  font-family: Playfair Display, Georgia, serif !important;
+  font-weight: 700 !important;
 }
 
 section#pricing button[data-slot="button"]:hover {
-  background: #1B2838 !important;
-  border-color: #1B2838 !important;
+  background: #1b2838 !important;
+  border-color: #1b2838 !important;
 }
 
-/* CTA section at bottom */
 div.min-h-screen > main > section:last-child [data-slot="card"] {
-  background: #1B2838 !important;
-  border: 2px solid #C4A265 !important;
+  background: #1b2838 !important;
+  border: 2px solid #c4a265 !important;
   border-radius: 2px !important;
 }
 
 div.min-h-screen > main > section:last-child h2 {
-  font-family: 'Playfair Display', Georgia, 'Times New Roman', serif !important;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: .06em;
+  font-family: Playfair Display, Georgia, Times New Roman, serif !important;
 }
 
 div.min-h-screen > main > section:last-child button[data-slot="button"] {
-  background: #F5E6C8 !important;
-  color: #1B2838 !important;
-  border: 2px solid #C4A265 !important;
-  font-family: 'Playfair Display', Georgia, serif !important;
-  font-weight: 700 !important;
-  letter-spacing: 0.1em !important;
+  color: #1b2838 !important;
+  letter-spacing: .1em !important;
   text-transform: uppercase !important;
+  background: #f5e6c8 !important;
+  border: 2px solid #c4a265 !important;
   border-radius: 2px !important;
+  font-family: Playfair Display, Georgia, serif !important;
+  font-weight: 700 !important;
 }
 
 div.min-h-screen > main > section:last-child button[data-slot="button"]:hover {
-  background: #C4A265 !important;
+  background: #c4a265 !important;
 }
 
-/* Footer */
 div.min-h-screen > footer {
-  background: #1B2838 !important;
-  border-top: 2px solid #C4A265;
+  border-top: 2px solid #c4a265;
+  background: #1b2838 !important;
 }
 
 div.min-h-screen > footer a {
-  color: #C4A265 !important;
-  font-family: 'Special Elite', 'Courier New', monospace !important;
+  color: #c4a265 !important;
+  font-family: Special Elite, Courier New, monospace !important;
 }
 
 div.min-h-screen > footer a:hover {
-  color: #F5E6C8 !important;
+  color: #f5e6c8 !important;
 }
 
 div.min-h-screen > footer p {
-  color: rgba(196, 162, 101, 0.6) !important;
-  font-family: 'Special Elite', 'Courier New', monospace !important;
+  color: #c4a26599 !important;
+  font-family: Special Elite, Courier New, monospace !important;
 }
 
 div.min-h-screen > footer [data-slot="separator"] {
-  background: #C4A265 !important;
-  opacity: 0.3;
+  opacity: .3;
+  background: #c4a265 !important;
 }
 
-/* Dark mode — keep scorecard defaults, override landing page */
 .dark div.min-h-screen {
-  background:
-    repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 40px,
-      rgba(196, 162, 101, 0.02) 40px,
-      rgba(196, 162, 101, 0.02) 41px
-    ),
-    linear-gradient(180deg, #0f0d0a 0%, #1a1510 50%, #0f0d0a 100%) !important;
-  color: #E8CFA0 !important;
+  color: #e8cfa0 !important;
+  background: repeating-linear-gradient(0deg, #0000, #0000 40px, #c4a26505 40px 41px), linear-gradient(#0f0d0a 0%, #1a1510 50%, #0f0d0a 100%) !important;
 }
 
 .dark div.min-h-screen > header {
   background: #0a0806 !important;
-  border-bottom-color: rgba(196, 162, 101, 0.4) !important;
+  border-bottom-color: #c4a26566 !important;
 }
 
-.dark div.min-h-screen > header::after {
-  background:
-    radial-gradient(ellipse 11.11% 100% at 5.55% 0%, #6B1D00 70%, transparent 71%),
-    radial-gradient(ellipse 11.11% 100% at 16.66% 0%, #2a2015 70%, transparent 71%),
-    radial-gradient(ellipse 11.11% 100% at 27.77% 0%, #0f0d0a 70%, transparent 71%),
-    radial-gradient(ellipse 11.11% 100% at 38.88% 0%, #6B1D00 70%, transparent 71%),
-    radial-gradient(ellipse 11.11% 100% at 50% 0%, #2a2015 70%, transparent 71%),
-    radial-gradient(ellipse 11.11% 100% at 61.11% 0%, #0f0d0a 70%, transparent 71%),
-    radial-gradient(ellipse 11.11% 100% at 72.22% 0%, #6B1D00 70%, transparent 71%),
-    radial-gradient(ellipse 11.11% 100% at 83.33% 0%, #2a2015 70%, transparent 71%),
-    radial-gradient(ellipse 11.11% 100% at 94.44% 0%, #0f0d0a 70%, transparent 71%);
+.dark div.min-h-screen > header:after {
+  background: radial-gradient(11.11% 100% at 5.55% 0, #6b1d00 70%, #0000 71%), radial-gradient(11.11% 100% at 16.66% 0, #2a2015 70%, #0000 71%), radial-gradient(11.11% 100% at 27.77% 0, #0f0d0a 70%, #0000 71%), radial-gradient(11.11% 100% at 38.88% 0, #6b1d00 70%, #0000 71%), radial-gradient(11.11% 100% at 50% 0, #2a2015 70%, #0000 71%), radial-gradient(11.11% 100% at 61.11% 0, #0f0d0a 70%, #0000 71%), radial-gradient(11.11% 100% at 72.22% 0, #6b1d00 70%, #0000 71%), radial-gradient(11.11% 100% at 83.33% 0, #2a2015 70%, #0000 71%), radial-gradient(11.11% 100% at 94.44% 0, #0f0d0a 70%, #0000 71%);
 }
 
 .dark div.min-h-screen > main > section:first-child h1 {
-  color: #E8CFA0 !important;
-  text-shadow: 2px 2px 0px rgba(0, 0, 0, 0.4);
+  text-shadow: 2px 2px #0006;
+  color: #e8cfa0 !important;
 }
 
 .dark div.min-h-screen > main > section:first-child p {
-  color: #C4A265 !important;
+  color: #c4a265 !important;
 }
 
 .dark div.min-h-screen > main > section:first-child button[data-slot="button"] {
-  background: #C4A265 !important;
   color: #0f0d0a !important;
-  border-color: #C4A265 !important;
+  background: #c4a265 !important;
+  border-color: #c4a265 !important;
 }
 
 .dark div.min-h-screen > main > section:first-child button[data-slot="button"]:hover {
-  background: #8B2500 !important;
-  color: #F5E6C8 !important;
-  border-color: #8B2500 !important;
+  color: #f5e6c8 !important;
+  background: #8b2500 !important;
+  border-color: #8b2500 !important;
 }
 
 .dark section#features {
-  background: rgba(15, 13, 10, 0.6) !important;
-  border-color: rgba(196, 162, 101, 0.2);
+  border-color: #c4a26533;
+  background: #0f0d0a99 !important;
 }
 
 .dark section#features h2 {
-  color: #E8CFA0 !important;
+  color: #e8cfa0 !important;
 }
 
 .dark section#features [data-slot="card"] {
-  background: rgba(26, 21, 16, 0.8) !important;
-  border-color: rgba(196, 162, 101, 0.3) !important;
+  background: #1a1510cc !important;
+  border-color: #c4a2654d !important;
 }
 
 .dark section#features [data-slot="card-title"] {
-  color: #E8CFA0 !important;
+  color: #e8cfa0 !important;
 }
 
 .dark section#features [data-slot="card-description"] {
-  color: #C4A265 !important;
+  color: #c4a265 !important;
 }
 
 .dark section#pricing h2 {
-  color: #E8CFA0 !important;
+  color: #e8cfa0 !important;
 }
 
 .dark section#pricing [data-slot="card"] {
-  background: rgba(26, 21, 16, 0.8) !important;
-  border-color: #C4A265 !important;
+  background: #1a1510cc !important;
+  border-color: #c4a265 !important;
 }
 
 .dark section#pricing .text-5xl {
-  color: #C4A265 !important;
+  color: #c4a265 !important;
 }
 
 .dark section#pricing li {
-  color: #E8CFA0 !important;
+  color: #e8cfa0 !important;
 }
 
 .dark div.min-h-screen > main > section:last-child [data-slot="card"] {
   background: #0a0806 !important;
-  border-color: rgba(196, 162, 101, 0.4) !important;
+  border-color: #c4a26566 !important;
 }
 
 .dark div.min-h-screen > footer {
+  border-top-color: #c4a26533;
   background: #0a0806 !important;
-  border-top-color: rgba(196, 162, 101, 0.2);
 }
 
 .dark {
   --card: #0d0d0d;
-  --accent: #111111;
+  --accent: #111;
+}
+
+:root {
+  --color-app: #8b2500;
 }

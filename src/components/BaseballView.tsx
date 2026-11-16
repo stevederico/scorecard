@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import type { KeyboardEvent } from 'react';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@stevederico/skateboard-ui/shadcn/ui/card';
-import { Button } from '@stevederico/skateboard-ui/shadcn/ui/button';
-import { Input } from '@stevederico/skateboard-ui/shadcn/ui/input';
-import { Popover, PopoverContent, PopoverTrigger } from '@stevederico/skateboard-ui/shadcn/ui/popover';
+import { Card, CardContent, CardHeader, CardTitle } from '@stevederico/skateboard-ui/ui/card';
+import { Button } from '@stevederico/skateboard-ui/ui/button';
+import { Input } from '@stevederico/skateboard-ui/ui/input';
+import { Popover, PopoverContent, PopoverTrigger } from '@stevederico/skateboard-ui/ui/popover';
 import { ChevronLeft, ChevronRight, RotateCcw } from '@stevederico/skateboard-ui/icons';
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@stevederico/skateboard-ui/shadcn/ui/drawer';
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from '@stevederico/skateboard-ui/ui/drawer';
 
 /** A single player in a team's batting lineup. */
 interface Player {
