@@ -1,5 +1,11 @@
 ## CHANGELOG
 
+5.9.0
+
+  Fix CSS precedence
+  Restore color-mix rules
+  Repeat md:text-sm
+
 5.8.0
 
   Bump skateboard-ui 5.19.0

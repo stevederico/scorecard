@@ -17,6 +17,12 @@
   ::selection {
     background-color: #8b250033;
   }
+
+  @supports (color: color-mix(in lab, red, red)) {
+    ::selection {
+      background-color: color-mix(in oklch, var(--color-app) 20%, transparent);
+    }
+  }
 }
 
 @layer utilities {
@@ -89,6 +95,12 @@
     border-color: #8b25004d;
   }
 
+  @supports (color: color-mix(in lab, red, red)) {
+    .border-app\/30 {
+      border-color: color-mix(in oklab, var(--color-app) 30%, transparent);
+    }
+  }
+
   .border-border, .border-border\/60 {
     border-color: var(--border);
   }
@@ -111,6 +123,12 @@
 
   .bg-app\/10 {
     background-color: #8b25001a;
+  }
+
+  @supports (color: color-mix(in lab, red, red)) {
+    .bg-app\/10 {
+      background-color: color-mix(in oklab, var(--color-app) 10%, transparent);
+    }
   }
 
   .bg-app\/15 {
@@ -172,6 +190,12 @@
 
   .from-app\/5 {
     --tw-gradient-from: #8b25000d;
+  }
+
+  @supports (color: color-mix(in lab, red, red)) {
+    .from-app\/5 {
+      --tw-gradient-from: color-mix(in oklab, var(--color-app) 5%, transparent);
+    }
   }
 
   .bg-clip-padding {
@@ -735,10 +759,24 @@
   [data-slot="popover-content"] .\[\[data-slot\=popover-content\]_\&\]\:bg-transparent {
     background-color: #0000;
   }
+
+  /* Shell rule repeated for precedence: Input's md:text-sm beats an app text-xs. */
+  @media (min-width: 48rem) {
+    .md\:text-sm {
+      font-size: var(--text-sm);
+      line-height: var(--tw-leading, var(--text-sm--line-height));
+    }
+  }
 }
 
 .gradient-btn {
   box-shadow: 0 25px 50px -12px #8b250066;
+}
+
+@supports (color: color-mix(in lab, red, red)) {
+  .gradient-btn {
+    box-shadow: 0 25px 50px -12px color-mix(in srgb, var(--color-app) 40%, transparent 60%);
+  }
 }
 
 [data-slot="sidebar-wrapper"] {
