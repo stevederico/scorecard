@@ -1,7 +1,7 @@
 {
   "name": "scorecard-app",
   "private": false,
-  "version": "5.6.4",
+  "version": "5.7.0",
   "skateboardVersion": "5.6.0",
   "type": "module",
   "scripts": {
@@ -18,10 +18,10 @@
     "test:docs": "node scripts/test-docs.mjs"
   },
   "dependencies": {
-    "@stevederico/skateboard-ui": "5.11.4",
-    "lucide-react": "0.546.0",
+    "@stevederico/skateboard-ui": "5.15.0",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "react-router": "7.18.5"
   },
   "devDependencies": {
     "@tailwindcss/vite": "4.3.3",
